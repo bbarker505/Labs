@@ -1,0 +1,563 @@
+---
+title: "Introduction to R and RStudio"
+subtitle: "Ecological Systems Modeling </center> Jan 8-10, 2024"
+#author: "Brittany Barker"
+#date: "`r format(as.Date('1/8/24', '%m/%d/%y'), '%B %d, %Y')`"
+format: revealjs
+---
+
+---
+format: 
+  revealjs:
+    slide-number: c/t
+    width: 1600
+    height: 900
+    css: ["theme/theme.css"]
+    theme: simple
+    echo: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(here) # Start in R project directory
+```
+
+## About me
+
+:::: {.columns}
+
+::: {.column width="40%"}
+```{r, echo = FALSE, out.width = "600px"}
+knitr::include_graphics(here("Intro_R_part1", "images", "intro_me.jpg"))
+```
+:::
+
+::: {.column width="60%"}
+**Current position**  
+- Snr. Research Associate, Oregon IPM Center & Hort.  
+<br/>
+**Research interests**  
+- Modeling, ecology, biogeography, conservation, biological invasions, and genetics  
+<br/>
+**Hobbies**  
+- Running, hiking, biking, moving!  
+- Gardening, native habitat restoration  
+- Artistic and creative endeavors  
+<br/>
+  
+:::
+
+::::
+
+## Learning objectives
+
+- Explain what R and RStudio are, what they are used for, and how they relate to each other  
+- Describe the purpose of the RStudio Script, Console, Environment, and Plots panes  
+- Create an R project and understand the purpose of the working directory  
+- Copy a folder of files on Jupyter Hub and open them in RStudio
+
+## Learning objectives
+
+- **Explain what R and RStudio are, what they are used for, and how they relate to each other**     
+- Describe the purpose of the Script, Console, Environment, and Plots panes in RStudio  
+- Create an R project and understand the purpose of the working directory  
+- Copy a folder of files on Jupyter Hub and open them in RStudio
+
+## What is R?
+
+- First implemented beginning in early 1990s (based on S language)  
+- First designed for statistics but can now do much more  
+
+```{r, echo = FALSE, out.width= "1000px", fig.align="left", fig.cap = "Source: blog.internshala.com"}
+knitr::include_graphics(here("Intro_R_part1", "images", "What-is-R.jpg"))
+```
+
+## Why learn R?
+
+- Commonly used programming language   
+- Does more than just statistics  
+- Great for reproducibility  
+- Interdisciplinary and extensible  
+- Large and friendly user community  
+- Facilitates learning and comprehension  
+
+## R is a commonly used programming language 
+
+```{r, echo = FALSE}
+knitr::include_graphics(here("Intro_R_part1", "images", "top_languages_2019.jpeg"))
+```
+
+## R is more than just statistics
+
+```{r, echo = FALSE, out.width = "800px", fig.align="left", fig.cap = "Source: www.icertglobal.com"}
+knitr::include_graphics(here("Intro_R_part1", "images", "0Advantages-of-R-Programming.jpg"))
+```
+
+## R is great for reproducibility
+
+- No need to remember a series of points and clicks   
+- Quickly re-create plots, re-run models and analyses, etc. 
+- Makes steps used in your analysis clear  
+- Can be inspected by someone for feedback  
+
+```{r, echo = FALSE, out.width = "800px", fig.align="left", fig.cap = "Source: www.cos.io"}
+knitr::include_graphics(here("Intro_R_part1", "images", "open_research.jpg"))
+```
+
+## Example: R scripts in GitHub for one of my pubs
+
+```{r, echo = FALSE, out.width = "800px", fig.align="left", fig.cap = "Barker, B. S., L. Coop, and C. Hong. 2022.Biology 11:849"}
+knitr::include_graphics(here("Intro_R_part1", "images", "Github_Cps_study.png"))
+```
+
+## R is interdisciplinary and extensible
+
+:::: {.columns}
+
+::: {.column width="40%"}
+- 10,000+ packages to extend its capabilities  
+- Use statistical approaches from many scientific disciplines  
+- e.g., image analysis, GIS, time series, population genetics, and much more 
+:::
+
+::: {.column width="60%"}
+
+```{r, echo = FALSE, out.width = "600px"}
+knitr::include_graphics(here("Intro_R_part1", "images", "tidyverse_packages.jpg"))
+```
+:::
+
+::::
+
+## R packages
+
+- Libraries of functions, code, and documentation  
+- Analogy: apps that you download on your phone  
+
+```{r, echo = FALSE, out.width = "600px", fig.cap="Source: ModernDive"}
+knitr::include_graphics(here("Intro_R_part1", "images", "apps.png"))
+```
+
+## Wrangle and manipulate data
+
+- `tidyverse` packages
+
+```{r, echo = FALSE, out.width = "800px", fig.align="left", fig.cap = "Source: Allison Horst"}
+knitr::include_graphics(here("Intro_R_part1", "images", "horst_monsters_tidyverse.png"))
+```
+
+## Make beautiful plots
+
+- `ggplot2` package (part of `tidyverse`)
+
+```{r, echo = FALSE, out.width = "800px", fig.align="left", fig.cap = "Source: www.analyticsvidhya.com"}
+knitr::include_graphics(here("Intro_R_part1", "images", "ggplot_plots.png"))
+```
+
+## Make a presentation
+
+- `revealjs` package (this is code for my presentation)
+
+```{r, echo = FALSE, out.width = "800px", fig.align="left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "revealjs_presentation.png"))
+```
+
+## Make a web app
+
+- `shiny` package
+
+```{r, echo = FALSE, out.width = "800px", fig.align="left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "shiny_app.gif"))
+```
+
+## R has a supportive user community
+
+`https://www.meetup.com/portland-r-user-group` 
+
+```{r, echo = FALSE, out.width = "700px"}
+knitr::include_graphics(here("Intro_R_part1", "images", "PDX_R_UserGroup.png"))
+```
+
+## 
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r, echo = FALSE, out.width = "1600px"}
+knitr::include_graphics(here("Intro_R_part1", "images", "twitter_tidy.png"))
+```
+:::
+
+::: {.column width="50%"}
+
+```{r, echo = FALSE, out.width = "700px"}
+knitr::include_graphics(here("Intro_R_part1", "images", "twitter_purrr.png"))
+```
+:::
+
+::::
+
+## Check out upcoming PDX R User Group events
+
+```{r, echo = FALSE, out.width = "600px", fig.align="center"}
+knitr::include_graphics(here("Intro_R_part1", "images", "PDX_R_UserGroup2.png"))
+```
+
+## Cascadia R Conf 2024
+
+- Conference that brings together professionals and students who use R  
+- Various fields represented: life sciences, medicine, stats, teaching, etc.    
+- Next conference will be in Seattle in June 2024 (date TBD)   
+- Stay tuned at: `https://cascadiarconf.com/`  
+
+```{r, echo = FALSE, out.width = "700px"}
+knitr::include_graphics(here("Intro_R_part1", "images", "Cascadia_R_Conf.png"))
+```
+
+
+## Facilitate learning and comprehension
+
+- Computer programming is a key skill set for data science  
+- Hands-on work with your data, analyses, etc., provides more in depth understanding  
+
+```{r, echo = FALSE, out.width = "700px"}
+knitr::include_graphics(here("Intro_R_part1", "images", "data_science.png"))
+```
+
+## Limitations of R
+
+- Steep learning curve, but `RStudio` can help overcome this limitation  
+- Hungry for physical memory: stores all data in physical memory  
+- Slower execution: sometimes not as fast as MATLAB and Python  
+
+```{r, echo = FALSE, fig.align="left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "limitations.png"))
+```
+
+## 
+
+Even after years of experience with R, I have days where I....
+
+```{r, echo = FALSE, out.width = "800px"}
+knitr::include_graphics(here("Intro_R_part1", "images", "bang-head-rough-week.gif"))
+```
+
+## RStudio
+
+- Re-branded as Posit (more inclusive of other programming langs)
+- Free and open source IDE (integrated development environment)  
+- Many convenient features and tools that make it easier to
+  - write and troubleshoot code  
+  - interact with objects in the R environment  
+  - simultaneously view graphs, data tables, code, and outputs  
+
+```{r, echo = FALSE}
+knitr::include_graphics(here("Intro_R_part1", "images", "R_RStudio.png"))
+```
+
+## Analogy of difference between R and RStudio
+<br/>
+```{r, echo = FALSE, fig.cap = "Source: moderndive.com"}
+knitr::include_graphics(here("Intro_R_part1", "images", "R_vRStudio.png"))
+```
+
+## Learning objectives
+
+- Explain what R and RStudio are, what they are used for, and how they relate to each other  
+- **Describe the purpose of the Script, Console, Environment, and Plots panes in RStudio**
+- Create an R project and understand the purpose of the working directory  
+- Copy a folder of files on Jupyter Hub and open them in RStudio
+
+## We will use RStudio on Jupyter Hub at [OSU](https://uit.oregonstate.edu/tsa/data-science) 
+
+- Everyone log on to `HORT499X` in Canvas  
+
+## We will use RStudio on Jupyter Hub at [OSU](https://uit.oregonstate.edu/tsa/data-science) 
+
+- Navigate to (`Modules` -> `Jupyter Hub`)  
+- Click on `Hub-HORT-499X`    
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_Canvas.png"))
+```
+
+## We will use RStudio on Jupyter Hub at [OSU](https://uit.oregonstate.edu/tsa/data-science) 
+
+- Navigate to (`Modules` -> `Jupyter Hub`)  
+- Click on `Hub-HORT-499X`  
+- Click on `Load Hub-HORT-499X in a new window`     
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_Canvas2.png"))
+```
+
+##
+
+- Click `Start My Server`  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_Canvas3.png"))
+```
+
+## Jupyter Hub
+
+- You should see your Jupyter Hub workspace (mine is below)  
+- Other students cannot modify anything in your workspace  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_first_login.png"))
+```
+
+## Jupyter Notebook
+
+- The `Launcher` tab contains your Jupyter Notebook for this course  
+- For this course, we will only be utilizing RStudio  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_Launcher1.png"))
+```
+
+## In Jupyter Hub
+
+- Click on the new folder icon  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_Launcher2.png"))
+```
+
+## In Jupyter Hub
+
+- Click on the new folder icon  
+- Create a directory (folder) named `Labs`  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_Launcher3.png"))
+```
+
+## In Jupyter Hub
+
+- Click the `RStudio` icon in your Notebook (in `Launcher` tab)
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_Launcher4.png"))
+```
+
+## RStudio is divided into 4 "panes"
+
+Not seeing the entire Source pane? Click  the first icon in the top upper-right corner
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "rstudio_session_4pane_layout.png"))
+```
+
+## Preferences
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- The placement of the 4 panes and their content can be customized   
+- See menu, `Tools` -> `Global Options` -> `Pane Layout`  
+- Background color, font color, font size, and zoom level are in (`Global Options` -> `Appearance`)  
+:::
+
+::: {.column width="50%"}
+
+```{r, echo = FALSE, out.width = "700px"}
+knitr::include_graphics(here("Intro_R_part1", "images", "dark_theme.png"))
+```
+
+:::
+
+::::
+
+## RStudio: **Source** (top-left) pane
+
+- Your scripts or other files (e.g., R Markdown files)  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "RStudio_IDE_screenshot_source.png"))
+```
+
+## RStudio: **Environment/History** (top-right) pane
+
+- Objects in your working space (Environment) and your command history (History)  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "RStudio_IDE_screenshot_enviro.png"))
+```
+
+## RStudio: **Files/Plots/Packages/etc.** pane (bottom-right)
+
+- Files, plots, etc. in your directories (in Jupyter Hub)  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "RStudio_IDE_screenshot_plot.png"))
+```
+
+## RStudio: R **Console** (bottom-left)
+
+- Provides an area to interactively execute code (but won't be saved!)
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "RStudio_IDE_screenshot_console.png"))
+```
+
+## Learning objectives
+
+- Explain what R and RStudio are, what they are used for, and how they relate to each other  
+- Describe the purpose of the Script, Console, Environment, and Plots panes in RStudio  
+- **Create an R project and understand the purpose of the working directory**  
+- Copy a folder of files on Jupyter Hub and open them in RStudio
+
+## Create an R project for this course
+
+1. Under the `File` menu, click on `New Project`  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio1.png"))
+```
+
+## Create an R project for this course
+
+2. Choose `Existing Directory`, then `New Project`  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio2.png"))
+```
+
+## Create an R project for this course
+
+3. Select the `Labs` folder that you recently created  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio3.png"))
+```
+
+## The working directory
+
+- The `Labs` folder, where you put your R project, will be your **working directory**  
+- To see this, type in `getwd()` in the R console  
+- It should return `/home/username/Labs`  (username is your ONID)
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio4.png"))
+```
+
+## Why are we doing this?
+
+- You must open your R project prior to opening a lab assignment (more on this later)  
+- All code within the `Labs` directory can use *relative paths* to files that indicate where inside the project a file is located  
+- The use of projects and relative paths makes sharing code with others easier  
+- It's also less laborious than typing out *absolute paths* (i.e., the full path to your directory)
+
+## Learning objectives
+
+- Explain what R and RStudio are, what they are used for, and how they relate to each other  
+- Describe the purpose of the Script, Console, Environment, and Plots panes in RStudio  
+- Create an R project and understand the purpose of the working directory    
+- **Copy a folder of files on Jupyter Hub and open them in RStudio**
+
+## Copying tutorials/lab assignments
+
+- NOTE: Instructions presented here are available in Canvas
+- Go to `Modules` -> `Jupyter Hub` -> `Copying_files.pdf`
+
+## Copying tutorials/lab assignments
+
+- All files that involved the use of R will be in `hub_data_share` in Jupyter Hub  
+- You will need to copy folders with these files to your own account  
+
+```{r, echo = FALSE, out.width= "800px"}
+knitr::include_graphics(here("Intro_R_part1","images", "copy_labs_1.png"))
+```
+
+## Method 1: copy folder using Terminal in RStudio
+
+Open up RStudio and click on the Terminal tab in the Console pane (bottom-left)
+
+```{r, echo = FALSE, out.width= "800px"}
+knitr::include_graphics(here("Intro_R_part1","images", "copy_labs_2.png"))
+```
+
+## Method 1: copy folder using Terminal in RStudio
+
+Type in the following command in the terminal:
+
+`cp -ur $HOME/hub_data_share/Intro_to_R_part1* $HOME/Labs/`
+
+```{r, echo = FALSE, out.width= "800px"}
+knitr::include_graphics(here("Intro_R_part1","images", "copy_labs_3.png"))
+```
+
+- `cp` copies files and directories  
+- `-u` option indicates copying only new and missing files to the destination  
+- `-r` option indicates drilling down through the directory structure  
+- `$HOME` is the path to your home directory, which is `/home/your_onid`  
+
+## Method 1: copy folder using Terminal in RStudio
+
+- If it worked correctly, you should see the `Intro_R_Part1` folder  
+- (In the `Files` tab of the Files/Plots/Packages/etc. pane)  
+
+```{r, echo = FALSE, out.width= "800px"}
+knitr::include_graphics(here("Intro_R_part1", "images", "copy_labs_4.png"))
+```
+
+## Method 2: Using the Terminal in Jupyter Hub
+
+1. In the `Launcher` tab, scroll down to the `Other` section  
+
+2. Click on `Terminal` (black box with money symbol) to start a session   
+
+3. Type `cp -ur $HOME/hub_data_share/Intro_to_R_part1* $HOME/Labs/`
+
+```{r, echo = FALSE, out.width= "800px", fig.align="right"}
+knitr::include_graphics(here("Intro_R_part1", "images", "copy_labs_5.png"))
+```
+
+## Open your project and load some files
+
+- We will be using the `Labs` project (`Labs.proj`) for all tutorials and lab assignments  
+- In RStudio, if you're project isn't already open, click on `File` -> `Open Project`  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio5.png"))
+```
+
+## Open your project and load some files
+
+- Open your project (`Labs.proj`)  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio6.png"))
+```
+
+## Open an R script
+
+- Click on `Open File` 
+- Navigate to `Home` -> `Labs` -> `Tutorials` -> `Intro_R_part1` -> `scripts`  
+- Select the `here_example.R` script
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio7.png"))
+```
+
+## The `here` package
+
+- For this class, we will use the `here` package to use project-relative paths  
+- Select all text in the script by pressing `Ctrl + A` 
+- Click on the `Run` button on the Source pane  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio8.png"))
+```
+
+## Output in the Console pane
+
+- Line 6 of the code was the project-relative path to `file.txt`  
+- Line 9 read the lines of `file.txt` using `readLines()` (see result in console)
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio9.png"))
+```

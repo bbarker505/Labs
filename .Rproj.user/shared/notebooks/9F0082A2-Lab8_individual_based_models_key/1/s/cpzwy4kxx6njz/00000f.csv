@@ -1,0 +1,7 @@
+"0","# Assume that upwind trap is at a 90 deg angle to moth"
+"0","ri <- sample(plume_upwind_probs$direction + 90, size = 1)"
+"0","ri"
+"1","[1]"
+"1"," 91"
+"1","
+"

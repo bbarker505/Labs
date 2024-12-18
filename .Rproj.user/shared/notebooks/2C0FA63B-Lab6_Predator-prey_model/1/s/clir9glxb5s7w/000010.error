@@ -1,0 +1,1 @@
+{"frames":[{"func":"ParamRunner(param = \"R\", values = R_values)","file":"","line_number":0,"end_line_number":0,"character_number":0,"end_character_number":0}],"message":"Error in NB_model_K(time, val_i, c, a, K) : \n  could not find function \"NB_model_K\"\n"}

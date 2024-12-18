@@ -1,0 +1,6 @@
+"0","# Function to convert casting directions in north wind to another wind direction"
+"0","# Input is wind direction in angular units "
+"0","Directions_cast_new <- function(wind_dir) {"
+"0","  dirs_cast <- mutate(cast_dirs_N, direction = direction + wind_dir)"
+"0","  return(dirs_cast)"
+"0","}"

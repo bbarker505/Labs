@@ -1,0 +1,2 @@
+"0","# View the first several rows of the output"
+"0","head(nb_model_df1)"

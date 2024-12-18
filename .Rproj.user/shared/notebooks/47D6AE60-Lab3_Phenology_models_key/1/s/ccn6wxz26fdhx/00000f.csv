@@ -1,0 +1,7 @@
+"0","# Import and format weather data"
+"0","# First line is skipped because it's descriptive info (not data)"
+"0","weath_data <- read_table(file = here(""Lab3_phenology_models"", ""weather_data"", ""CRVO21.txt""),"
+"0","                         skip = 1, col_names = FALSE,"
+"0","                         col_types = cols(X7 = col_skip())) %>%"
+"0","  data.frame() %>%"
+"0","  rename(c(""month"" = 1, ""day"" = 2, ""tmax"" = 3, ""tmin"" = 4, ""prec"" = 5, ""dd50"" = 6))"

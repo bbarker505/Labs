@@ -1,0 +1,44 @@
+"0","knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)"
+"0","library(here)"
+"2","here() starts at C:/Users/barkebri/Documents/Teaching/HORT499.599/Wint24/Labs
+"
+"0","library(terra) # working with rasters"
+"2","terra 1.7.65
+"
+"0","library(sf) # working with simple features"
+"2","Linking to GEOS 3.11.2, GDAL 3.7.2, PROJ 9.3.0; sf_use_s2() is TRUE
+"
+"0","library(rnaturalearth) # country/states boundaries"
+"2","Support for Spatial objects (`sp`) will be deprecated in {rnaturalearth} and will be removed in a future release of the package. Please use `sf` objects with {rnaturalearth}. For example: `ne_download(returnclass = 'sf')`
+"
+"0","library(dismo) # SDM functions"
+"2","Loading required package: raster
+"
+"2","Loading required package: sp
+"
+"0","library(ggplot2) # plotting"
+"0","library(dplyr) # data wrangling"
+"2","
+Attaching package: ‘dplyr’
+
+"
+"2","The following objects are masked from ‘package:raster’:
+
+    intersect, select, union
+
+"
+"2","The following objects are masked from ‘package:terra’:
+
+    intersect, union
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+"

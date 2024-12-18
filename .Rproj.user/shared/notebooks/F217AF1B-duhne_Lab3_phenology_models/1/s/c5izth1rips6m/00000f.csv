@@ -1,0 +1,6 @@
+"0","# Create an empty data frame to store accumulated DDs"
+"0","out_all <- data.frame(matrix(ncol = 4, nrow = 0))"
+"0","colnames(out_all) <- c(""month"", ""month_day"", ""dd_today"", ""dd_accum"")"
+"0",""
+"0","# Number of days for daily time step"
+"0","number_of_days <- nrow(weath_data)"

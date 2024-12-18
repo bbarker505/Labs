@@ -1,0 +1,3 @@
+"0","# Convert the table to a data frame and name the columns"
+"0","weath_data <- data.frame(weath_tbl)"
+"0","colnames(weath_data) <- c(""month"", ""day"", ""tmax"", ""tmin"", ""prec"", ""dd50"")"

@@ -1,0 +1,5 @@
+"0","a_values <-  seq(from = 0.1, to = 0.04, by = 0.005)
+"
+"2","Error in seq.default(from = 0.1, to = 0.04, by = 0.005) : 
+  wrong sign in 'by' argument
+"

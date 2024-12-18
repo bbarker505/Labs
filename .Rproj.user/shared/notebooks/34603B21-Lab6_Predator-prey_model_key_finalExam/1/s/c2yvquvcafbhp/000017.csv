@@ -1,0 +1,1 @@
+"0","ggsave(plot_densVtime3, filename = here(""Lab7_predator_prey_model"", ""plots"", ""NB_model_densVtime_Q2.png""), height = 4, width = 5, units = c('in'), device = ""png"", dpi = 150)"

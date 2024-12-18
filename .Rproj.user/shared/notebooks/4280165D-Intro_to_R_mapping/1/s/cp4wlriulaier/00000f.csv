@@ -1,0 +1,15 @@
+"0","# Peek at the data"
+"0","head(ph_zones)"
+"1","Simple feature collection with 6 features and 5 fields"
+"1","
+"
+"1","Geometry type: MULTIPOLYGON
+"
+"1","Dimension:     XY
+"
+"1","Bounding box:  "
+"1","xmin: -122.2375 ymin: 40.6 xmax: -103.8 ymax: 49.0875"
+"1","
+"
+"1","Geodetic CRS:  NAD83
+"

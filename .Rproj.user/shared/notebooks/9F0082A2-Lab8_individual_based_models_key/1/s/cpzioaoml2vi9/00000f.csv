@@ -1,0 +1,8 @@
+"0","# Center directions perpendicular to wind direction"
+"0","ri <- sample(cast_dirs_N$direction + wind_dir_mid + 90, "
+"0","                 size = 1, prob = cast_dirs_N$prob)"
+"0","ri"
+"1","[1]"
+"1"," 175"
+"1","
+"

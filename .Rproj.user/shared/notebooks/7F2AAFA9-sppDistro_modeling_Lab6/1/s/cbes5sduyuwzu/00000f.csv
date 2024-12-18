@@ -1,0 +1,14 @@
+"0","# Area of each raster cell is ca. 16 km2"
+"0","cell_size <- 16"
+"0",""
+"0","# What is area per cell - use average to convert no. cells to actual area (km2)"
+"0","#maparea <- area(NumGen, na.rm=TRUE, weights=TRUE)"
+"0","#maparea.values"
+"0",""
+"0","# Total area in exclusion zones"
+"0","cat(""Area severe stress = "", freq(allEXCL,1,-1) * cell_size, ""\n"")"
+"1","Area severe stress = "
+"1"," "
+"2","Error in cat(""Area severe stress = "", freq(allEXCL, 1, -1) * cell_size,  : 
+  argument 2 (type 'list') cannot be handled by 'cat'
+"

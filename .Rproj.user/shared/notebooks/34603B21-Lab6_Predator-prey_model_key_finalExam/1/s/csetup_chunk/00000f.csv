@@ -1,0 +1,6 @@
+"0","knitr::opts_chunk$set(echo = TRUE)"
+"0","library(here)"
+"0","library(dplyr) # Data wrangling"
+"0","library(tidyr) # Reformatting model outputs for plotting"
+"0","library(ggplot2) # Plotting model outputs"
+"0","library(patchwork) # Arrange multiple plots on 1 page"

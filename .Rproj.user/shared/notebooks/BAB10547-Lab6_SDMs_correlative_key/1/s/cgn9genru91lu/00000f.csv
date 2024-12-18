@@ -1,0 +1,2 @@
+"0","# Training dataset for the GLM"
+"0","ref_pts <- select(hooded_warb_data, tmin, precip)"

@@ -1,0 +1,274 @@
+---
+title: "Intro to mapping in R"
+subtitle: "Ecological Systems Modeling </center> Jan 29-Feb 2, 2024"
+format: revealjs
+---
+
+---
+format: 
+ revealjs:
+  slide-number: c/t
+  width: 1600
+  height: 900
+  theme: [simple, custom.css]
+  echo: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(here) # Start in R project directory
+library(sf) # Spatial features
+library(terra) # Rasters
+```
+
+
+## Elements of Geographic Information System (GIS)
+
+```{r, out.width = "650px", echo=FALSE, fig.align="center", fig.cap="Source: Mierzejowska & Pomyko 2019"}
+knitr::include_graphics(here("Intro_R_mapping","images", "GIS.png"))
+```
+
+## Why use R for GIS?
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+**Advantages** 
+- It's *FREE*!!! 
+- Automate and repeat tasks 
+- Easier to make reproducible workflow 
+- Extend functionality 
+- Faster than pointing/clicking 
+
+```{r, out.width = "650px", echo=FALSE, fig.align="left", fig.cap="Source: Aleks Buczkowski 2023"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "Why-is-ArcGIS-So-Expensive.png"))
+```
+
+:::
+
+::: {.column width="50%"}
+
+**Disadvantages** 
+- Sometimes a steep learning curve 
+- Sometimes harder for quick exploratory analysis)  
+- (e.g., can quickly zoom/pan maps in ArcMap)  
+
+```{r, out.width = "400px", echo=FALSE, fig.align="left"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "programmer_meme.jpg"))
+```
+
+:::
+
+::::
+
+## Types of spatial features: vector
+
+- Uses points and/or line segments to identify locations on earth 
+
+```{r, out.width = "650px", echo=FALSE, fig.align="center", fig.cap="Different types of vectors (source: Jakub Nowosad)"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "vector.png"))
+```
+
+## Types of spatial features: raster
+
+- Gridded data where each pixel (cell) is associated with a specific geographical location 
+- Can be numerical or categorical 
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r, out.width = "650px", echo=FALSE, fig.align="left"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "forest_cover.jpg"))
+```
+:::
+
+::: {.column width="50%"}
+
+```{r, echo = FALSE, out.width = "700px", fig.cap="Source: Jakub Nowosad"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "cont_vs_cat.png"))
+```
+:::
+
+::::
+
+## Vector vs. raster
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+Provinces of Spain
+
+```{r, out.width = "700px", echo=FALSE, fig.align="left", fig.cap="Source: Paula Moraga}
+knitr::include_graphics(here("Intro_R_mapping", "images", "pol_v_rast1.png"))
+```
+:::
+
+::: {.column width="50%"}
+
+Average annual temperature in Spain
+ 
+```{r, echo = FALSE, out.width = "700px"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "pol_v_rast2.png"))
+```
+:::
+
+::::
+
+## `sf`: R package for working with vectors
+
+- `sf` = simple features   
+- Integration with the tidyverse 
+- Emphasis on the spatial geometry of real world objects  
+
+:::: {.columns}
+
+::: {.column width="80%"}
+
+```{r, echo = FALSE, out.width = "1000px", fig.align="center-aligned", fig.cap="Source: Paula Moraga"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "sf_objects.png"))
+```
+
+:::
+
+::: {.column width="20%"}
+
+```{r, echo = FALSE, out.width = "650px", fig.cap="center-aligned"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "sf_logo.png"))
+```
+
+:::
+
+::::
+
+## Functions in `sf` pacakge
+
+```{r, echo = FALSE, out.width = "1000px", fig.align="center-aligned"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "sf_concept_map.png"))
+```
+
+## Example: Plant hardiness zone map (2023) - PRISM group
+
+- Import the spatial feature (vector data) using `st_read()`  
+- Notice data columns vs. the geometry column  
+- This feature is a `multipolygon` - i.e., many polygons for different zones
+
+```{r}
+ph_zones <- st_read(here("Intro_R_mapping", "data", "ph_zones_PRISM_PNW.shp"))
+ph_zones
+```
+## Plot plant hardiness zones using `ggplot2`
+
+```{r}
+# Simple plot of plant hardiness zones
+ggplot() + 
+  geom_sf(data = ph_zones, aes(fill = zone)) +
+  ggtitle("2023 Plant Hardiness Zones (PRISM group)") +
+  theme_bw() 
+```
+
+## Using other tidyverse functions on `sf` objects
+
+- Tidyverse functions will work on `sf` objects  
+- For example, use `dplyr` to filter desired data  
+
+```{r}
+# Subset of zones (8b, 9a, 9b)
+ph_zones_sub <- ph_zones %>%
+  filter(zone %in% c("8b", "9a", "9b"))
+
+# Plot result
+ggplot() + 
+  geom_sf(data = ph_zones_sub, aes(fill = zone)) +
+  ggtitle("Plant Hardiness Zones 8b-9b") +
+  theme_bw() 
+```
+
+## `terra`; R package for working with rasters
+
+- Functions for creating, reading, manipulating, and writing raster data  
+- Can work with single rasters and with raster "stacks" (multiple bands)
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r, out.width = "700px", echo=FALSE, fig.align="left", fig.cap="Source: Robert Hijmans}
+knitr::include_graphics(here("Intro_R_mapping", "images", "raster_bands.png"))
+```
+
+::: {.column width="20%"}
+
+```{r, echo = FALSE, out.width = "600px", fig.cap="center-aligned", fig.cap = "Jakub Nowosad"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "logo.png"))
+```
+
+:::
+
+::::
+
+## Example:
+
+- Import raster data of predicted lilac leaf out for 2018  
+- Uses the `rast()` function in `terra` 
+- Raster info includes dimensions, resolution, extent, and coord. ref. system  
+
+```{r}
+tmin <- rast(here("Intro_R_mapping", "data", "PRISM_tmin_30yr6190_4kmM2_19751231.bil"))
+tmin
+```
+
+## Plotting raster data
+
+- One approach is to convert raster to data frame first     
+- Then plot using `geom_raster()` or `geom_tile()` in `ggplot2`  
+- New package called `tidyterra` also has really useful functions  
+
+```{r}
+# Convert raster to data frame, keep xy values
+tmin_df <- as.data.frame(tmin, xy = TRUE) %>%
+  rename("Tmin" = 3)
+
+# Plot using "geom_raster"
+ggplot() +
+  geom_raster(data = tmin_df, aes(x = x, y = y, fill = Tmin)) +
+  scale_fill_whitebox_c(
+    palette = "muted",
+    labels = scales::label_number(suffix = "º"),
+    n.breaks = 12) +
+    ggtitle("Min Avg. Temperature on Dec. 31 (1961-1990) in CONUS") +
+  theme_bw()
+```
+
+## Mapping with multiple layers
+
+- Oftentimes we want to make maps with multiple spatial features 
+
+```{r, out.width = "650px", echo=FALSE, fig.align="center"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "layering.png"))
+```
+
+## Example: a ggplot combining raster and vectors
+
+- Map of the phenology and potential distribution for invasive emerald ash borer  
+- What are the vectors vs. rasters in this map? 
+
+:::: {.columns}
+
+::: {.column width="75%"}
+
+```{r, echo = FALSE, out.width = "1500px", fig.cap="center-aligned", fig.cap="Source: Barker et al. (2023) *Frontiers in Insect Science*"}
+knitr::include_graphics(here("Intro_R_mapping", "EAB_map.png"))
+```
+
+:::
+
+::: {.column width="25%"}
+
+```{r, echo = FALSE, out.width = "250px"}
+knitr::include_graphics(here("Intro_R_mapping", "emerald-ash-borer-on-leaf.png"))
+```
+:::
+
+::::

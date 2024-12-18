@@ -1,0 +1,5 @@
+"0","velocities <- round(runif(n = 10000, min = 1, max = 20), 2)"
+"0","ggplot(data.frame(velocities), aes(x = velocities)) + "
+"0","  geom_histogram(color = ""black"", binwidth = 1) +"
+"0","  scale_x_continuous(""Velocities (m/min)"", expand = c(0,0), breaks = seq(0, 20, 1)) +"
+"0","  scale_y_continuous(""Count"", expand = c(0,0)) "

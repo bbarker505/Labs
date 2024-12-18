@@ -1,0 +1,6 @@
+"0","# Save raster outputs
+writeRaster(DDtotal, here(output_dir, paste0(spp, ""_Total_DDs_"", yr, "".tif"")), 
+            format=""GTiff"", overwrite=TRUE)
+"
+"2","Error: [write] unknown option(s): format
+"

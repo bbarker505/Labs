@@ -1,0 +1,4 @@
+"0","knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)"
+"0","library(here) # Start in R project directory"
+"0","library(sf) # Spatial features"
+"0","library(terra) # Rasters"

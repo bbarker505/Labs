@@ -1,0 +1,780 @@
+---
+author: "Your name"
+title: "Lab 8: Individual-based movement models"
+date: "`r format(Sys.Date(), tz = 'America/Los_Angeles')`"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(dplyr) # Data wrangling
+library(purrr) # Functional programming
+library(ggplot2) # Plotting
+library(ggrepel) # Avoid label overlap in plots
+library(ggspatial) # Distance scale for plots
+library(ggnewscale) # Two distinct legends in same plot
+library(MCMCglmm) # Random Generation from a Truncated Normal Distro (rtnorm)
+library(useful) # Calculating angles/distance
+library(terra) # Working with rasters
+library(sf) # Working with spatial features
+```
+
+### **Learning Objectives**
+
+- Produce and interpret outputs of an individual-based movement model   
+- Describe the influence of random and non-random components in a model  
+- Modify code to change the behavior of an individual-based model     
+
+### **Grading Rubric**
+
+Most of your grade will be for effort - i.e., that you did your best to follow instructions and to answer questions. Each lab is worth 30 pts, so divide this number by the total number of questions to estimate the approximate number of points per question. Points may be deducted for errors in code, not following instructions, or answering questions incorrectly. 
+
+### **Instructions**
+
+There are a set of questions associated with each exercise below that you must complete either during class or on your own time. Record answers to the questions **within** the Markdown (`.Rmd`) file and record your name on line 2. Once you're done with the lab, knit the R markdown file as a Word document (`.docx`) within RStudio by clicking the `Knit` button found in the toolbar (look for a ball of yarn with a needle sticking out of it) and selecting `Knit to Word`. Ignore any warning messages that pop up in the Console during knitting. Submit the `.Rmd` **and** the `.docx` files on Canvas.
+
+### **Introduction**
+
+Understanding or predicting population dynamics often requires an understanding of the movement behaviors of individuals or subgroups in the population of interest. In this lab, we will use a movement model based on one presented in Tyson (2014) to predict movement of [codling moth](https://en.wikipedia.org/wiki/Codling_moth), *Cydia pomonella*, which is a major pest to agricultural crops, particularly apples and pears. Native to the Mediterranean region, codling moth has invaded all major continents except Antarctica. Poorly managed populations can cause up to 100% crop loss, particularly when pest pressure is exacerbated by the occurrence of other pests such as apple maggot, *Rhagoletis pomonella*. 
+
+Tyson's (2014) models were developed to determine whether variations in moth behaviors in springtime could explain the lack of success of an [sterile insect technique (SIT)](https://en.wikipedia.org/wiki/Sterile_insect_technique) program in Okanagan, Canada. The SIT method involves mass-rearing and sterilizing a target pest using radiation, followed by the systematic area-wide release of the sterile males by air over defined areas, where they mate with wild females resulting in no offspring and a declining pest population. This lab incorporates only parts of Tyson's (2014) models. For example, one of Tyson's (2014) objectives was to model resting vs. movement behavior in sterile males because too much resting compared to wild males (sterile male uncompetitiveness) could lower SIT program success. However, our model assumes that moths are engaged in movement over the specified time frame, but in reality moths do exhibit resting behaviors.
+
+Our model includes both random and non-random components. Movement of moths (flight speed and flight direction) has a [random walk](https://en.wikipedia.org/wiki/Random_walk) element, which is a stochastic process that consists of a sequence of uncorrelated changes in a random variable. This means that there is no pattern to the changes of the random variable and changes cannot be predicted. Non-random components of the model include biases in the path meander of males (Adams et al. 2020), casting behavior in males, and the response of males to pheromone attractants emitted by traps (directional flight). These non-random components are explained in more detail below. 
+
+### **Model Description and Setup**
+
+#### **Female Flight**
+
+The direction and distance of each movement step of both males and females is influenced by wind velocity. Females fly to a new position by choosing a flight vector. The distance $d_i$ traveled by a given moth is given by $d_i = v × 1 minute$ where the flight speed *v* is between 0 and 20 m/min, and is chosen at random from a uniform distribution at the beginning of each time step. 
+
+```{r}
+velocities <- round(runif(n = 10000, min = 1, max = 20), 2)
+ggplot(data.frame(velocities), aes(x = velocities)) + 
+  geom_histogram(color = "black", binwidth = 1) +
+  scale_x_continuous("Velocities (m/min)", expand = c(0,0), breaks = seq(0, 20, 1)) +
+  scale_y_continuous("Count", expand = c(0,0)) 
+  ggtitle("Moth velocities") 
+```
+
+The direction $𝜙_i$ (angle of flight) of female flight is chosen at random at each step in a time step, from a uniform distribution of possible directions. In the below example, the direction of the moth in the previous step, `ri_prev`, was 50$^{\circ}$, so the direction for the current step, `ri`, would be randomly sampled.
+
+```{r}
+# Distribution of flight directions for female moths
+ri_prev <- 50
+directions_f <- data.frame(
+  directions = round(runif(n = 10000, min = -180, max = 180), 0)) %>%
+  mutate(ri = sample(directions, 1, replace = TRUE))
+ri <- sample(directions_f$directions, 1, replace = TRUE) 
+ri
+```
+
+Histogram of female flight directions.
+
+```{r}
+ggplot(directions_f, aes(x = directions)) + 
+  geom_histogram(color = "black", binwidth = 10) +
+  scale_x_continuous("Direction", expand = c(0,0), breaks = seq(-180, 180, 20)) +
+  scale_y_continuous("Count", expand = c(0,0)) +
+  ggtitle("Distribution of female directions") 
+```
+
+In the simulations below, the initial `ri` value is saved in a data frame `ris` in order to keep track of which direction the moth turns at each step. 
+
+```{r}
+ris <- data.frame(ri = ri)
+```
+
+For a single moth, given the location $Pi = (xi, yi)$, distance $d_i$, and angle of flight $𝜙_i$ at the beginning of a step, we determine the new position $Pi+1 = (xi+1, yi+1)$ of the moth at the end of the step using  
+
+  $x_i+1 = x_i + d_icos(𝜙_i)$,  
+  $y_i+1 = y_i + d_isin(𝜙_i)$
+ 
+These two equations are implemented in the time step using `x_fun` and `y_fun`, which require location (`xi` and `yi`), distance (`di`), and direction (`ri`) inputs. Direction is converted from radians to degrees by multiplying it by pi/180 (i.e., `3.14159`/`180`).
+
+```{r}
+# New x-position
+x_fun <- function(xi, di, ri) {
+  xi.1 <- xi + di * cos(ri * pi/180)
+}
+
+# New y-position
+y_fun <- function(yi, di, ri) {
+  y1.1 <- yi + di * sin(ri * pi/180)
+}
+```
+
+#### **Male Flight**
+
+##### **(A) Casting Flight ** 
+
+In contrast to Tyson's (2014) model, our model accounts for biased path meander in males, in which possible directions ($𝜙_i$) are centered on straight ahead (mean = direction of previous step) and having a specified circular standard deviation (c.s.d) of 40$^{\circ}$ in either direction. This c.s.d. value is based on simulations of male moth path meanders (Adams et al. 2020). Below we create and sample a truncated Gaussian distribution of possible directions according to these specifications. The moth's previous direction was 50$^{\circ}$ (`ri_prev` = 50), so you can see that values are centered around this value.
+
+```{r}
+# Distribution of flight directions for male moths
+directions_m <- data.frame(
+    direction = round(rtnorm(1000, mean = ri_prev, sd = 40, lower = -180, upper = 180), 0))
+
+# Histogram of male flight directions
+ggplot(directions_m, aes(x = direction)) + 
+  geom_histogram(color = "black", binwidth = 10) +
+  scale_x_continuous("Direction", expand = c(0,0), 
+                     breaks = seq(-180, 180, 20), limits = c(-180, 180)) +
+  scale_y_continuous("Count", expand = c(0,0)) +
+  ggtitle("Distribution of male directions")
+```
+
+Male movement is also influenced by wind direction and the presence of pheromone plumes emitted by traps. In the absence of pheromones, male moths engage in "casting" behavior, flying at speeds less than maximum and mainly in a cross-wind direction, attempting to intersect a pheromone plume drifting downwind. The direction of flight, $𝜙_i$, is chosen from a nonuniform probability distribution as illustrated in Figure 1. 
+
+```{r, echo=FALSE, out.width = "70%", out.height = "70%"}
+knitr::include_graphics(here("Lab8_individual_based_models", "images", "Tyson_2014_fig1.png"))
+```
+
+Wind directions are converted from cardinal directions to degrees using the formula below.
+
+```{r}
+# 8 cardinal directions
+card_dirs <- data.frame(card_dir = c("N", "NE", "E", "SE", "S", "SW", "W", "NW"), 
+                        dir_low = c(337.5, 22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5),
+                        dir_high = c(22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5))
+
+# Convert to directions ranging from -180 to 180 (to correspond with moth direction format)
+card_dirs <- card_dirs %>%
+  mutate(dir_low = ifelse(dir_low > 180, dir_low - 360, dir_low),
+         dir_high = ifelse(dir_high > 180, dir_high - 360, dir_high))
+
+```
+
+We get the following probability distribution of casting flight directions in males when we follow Figure 1 of Tyson (2014).
+
+```{r}
+# Generate data frame of probabilities for each direction assuming north wind direction
+cast_dirs_N <- data.frame(direction = c(-180:180)) %>%
+  mutate(prob = case_when(direction >= -68 & direction < 68 ~ 0.1,
+                          direction >= 68 & direction < 113 ~ 0.40,
+                          direction >= 113 & direction < 177 ~ 0.025,
+                          direction >= 177 & direction <= 180 ~ 0.05,
+                          direction >= -180 & direction < -177 ~ 0.05,
+                          direction >= -177 & direction < -113 ~ 0.025,
+                          direction >= -113 & direction < -68 ~ 0.40))
+
+# Plot the distribution
+cast_dirs_N %>%
+  ggplot(aes(x = direction, y = prob)) +
+  geom_bar(stat = "identity") +
+  scale_x_continuous("X (Directions)", expand = c(.01, 0),
+                     breaks = c(-180, -140, -100, -60, -20, 20, 60, 100, 140, 180)) +
+  scale_y_continuous("f(X) Probability", breaks = c(seq(0:0.6, by = 0.1)), 
+                     expand = c(0.01, 0)) +
+  ggtitle("Male flight direction probabilities in north wind")
+```
+
+For simplicity, the midpoint of the low and high bounds for a wind direction is used in the model. For example, if wind is blowing from the north, then the midpoint is 0$^{\circ}$ (midpoint of -22.5$^{\circ}$ and 22.5$^{\circ}$). 
+
+```{r}
+# North wind direction
+wind_card <- "N"
+wind_direction <- filter(card_dirs, card_dir == wind_card)
+wind_dir_mid <- (wind_direction$dir_low + wind_direction$dir_high) / 2
+wind_dir_mid
+```
+
+The function below allows us to calculate a `direction_cast` data frame from the original `cast_dirs_N` data frame according to wind direction. This is necessary because the wind isn't always blowing north as shown in Figure 1 of Tyson's (2014). The function centers the input angular direction of wind direction to initial directions based on north wind. 
+
+```{r}
+# Function to convert casting directions in north wind to another wind direction
+# Input is wind direction in angular units 
+Directions_cast_new <- function(wind_dir) {
+  dirs_cast <- mutate(cast_dirs_N, direction = direction + wind_dir)
+  return(dirs_cast)
+}
+```
+
+Finally, we force male moths to move in a crosswind direction by centering male flight on wind direction and adding (90$^{\circ}$) (perpendicular angle).
+
+```{r} 
+# Center directions perpendicular to wind direction
+ri <- sample(cast_dirs_N$direction + wind_dir_mid + 90, 
+                 size = 1, prob = cast_dirs_N$prob)
+ri
+```
+                 
+##### **(B) Upwind Flight Towards a Plume** 
+
+If a male detects a pheromone plume, then it will fly directly upwind at its maximum flight speed until finding the source of the plume. The direction of male flight $𝜙_i$ is chosen from a uniform distribution centered on 0$^{\circ}$ (range -3$^{\circ}$ to 3$^{\circ}$), where 0$^{\circ}$ is directly upwind (Figure 1). The time step for an individual male stops if it moves to within 1 m of the trap (we assume that the male reached it). The model does not yet account for the possibility that the male might lose the plume.
+
+```{r}
+plume_upwind_probs <- data.frame(direction = -3:3)
+```
+
+In the time step, a function called [`cart2pol`](https://www.rdocumentation.org/packages/useful/versions/1.2.6/topics/cart2pol) is used to calculate the distance and angle of the moth to an upwind pheromone trap. Both types of information are important: the male immediately begins undergoing directional flight if it occurs <30 m downwind from an upwind trap, and the direction of the trap relative to the moth must be accounted for when calculating the moth's next step. 
+
+```{r}
+# Assume that upwind trap is at a 90 deg angle to moth
+ri <- sample(plume_upwind_probs$direction + 90, size = 1)
+ri
+```
+
+Tyson’s (2014) model assumes that a male detects a pheromone plume if it occurs <30 m downwind from a trap at any point during the time step. In the time step below, a function (`cart2pol`) is used to calculate the distance and angle of the moth to an upwind pheromone trap. Both types of information are important: the male immediately begins undergoing directional flight if it occurs <30 m from a plume, and the direction of the trap relative to the moth must be accounted for when calculating the moth’s next step.
+
+### **Spatial Inputs: Orchard, Pheromone Traps, and Starting Points**
+
+This exercise uses real UTM coordinates from the Yakima, WA area to create an imaginary orchard which has 12 pheromone traps placed evenly across three rows (4 traps per row) oriented N/S. 
+
+```{r}
+# Create a data frame with X and Y coordinates for pheromone traps. Producing
+# a raster and then sampling points at regular intervals from all x and y points
+# within the raster boundaries makes this easier. 
+#r <- raster(xmn=682367, xmx=683000, ymn=5164967, ymx=5165600, res = 1)
+ext <- ext(c(xmn=682367, xmx=683000, ymn=5164967, ymx=5165600))
+ext <- ext/2
+r <- rast(ext, res = 1)
+r <- setValues(r, 1:ncell(r)) # give raster some values
+prj <- "+proj=utm +zone=10 +datum=WGS84 +units=m" 
+crs(r) <- prj # project raster
+area <- nrow(r)  * ncol(r)  * xres(r) * yres(r) # 178,084 (formerly 400,689)
+r_pts <- as.data.frame(r, xy = TRUE) # all unique points in raster
+
+# WSU recommends placing one trap every 2.5 acres which translates to 10117 m2.
+trap_no <- ceiling(area/10117)
+
+# Convert raster points to data frame and sample at regular intervals to get N
+# unique pheromone traps. Results in 12 traps.
+phero_pts <- data.frame(y = unique(r_pts$y)[seq(1, length(unique(r_pts$y)), 100)]) %>%
+  left_join(r_pts, by = "y") %>%
+  group_by(y) %>%
+  filter(row_number() %% 100 == 0) %>%
+  ungroup() %>%
+  mutate(id = row_number())
+```
+
+We assume that both male and female moths occur at randomly chosen positions throughout the orchard at the start of the simulation. Below we create a data frame of all possible starting points.
+
+```{r}
+# Data frame of starting points
+# Created according to extent of orchard
+options(digits = 8)
+start_pts <- data.frame(
+  expand.grid(
+    x = round(seq(from = ext$xmin, to = ext$xmax, length.out = 500), 5),
+    y = round(seq(from = ext$ymin, to = ext$ymax, length.out = 500), 5)
+  )
+) %>%
+  # Keep only unique starting points
+  distinct(., x, y, .keep_all = TRUE)
+```
+
+All data frames with spatial information need to be projected in order to measure distance in meters. UTM zone 10 is used because it overlaps with Yakima, WA.
+
+```{r}
+# Create sf object out of pheromone trap points
+phero_pts_sf <- st_as_sf(phero_pts, coords = c("x", "y"))
+phero_pts <- cbind(phero_pts, st_coordinates(phero_pts_sf)) %>%
+  dplyr::select(id, X,Y) 
+names(phero_pts) <- c("id", "x", "y")
+
+# Filter out start points on edges
+start_pts <- start_pts %>%
+  filter(x > min(phero_pts$x) & x < max(phero_pts$x))
+#start_pts <- filter(start_pts, x > 682841 & y > 5165350)
+```
+
+### **The Time Step**
+
+The time step is broken up into two functions to avoid having a very long, complicated chunk of code. The first function, `CM_movement()`, uses functions and equations presented above to simulate three types of moth movement: 1) female flight, 2) males engaged in casting flight, and 3) males engaged in directional flight towards a plume emitted by a pheromone trap. The inputs are sex (male or female), previous position (`pos_prev`), flight velocity (`di`), and flight directions (`ris`). Additional arguments that are only relevant to males include flag (`1` = detected plume, `0` = has not detected plume), theta (position relative to a pheromone trap), and casting flight directions (`dirs_cast`).
+
+```{r}
+CM_movement <- function(sex, pos_prev, di, ris, flag, theta, dirs_cast) {
+  
+  # Direction in previous step
+  ri_prev <- as.numeric(slice_tail(ris)) 
+  
+  # Randomly sample a direction from a uniform distribution
+  if (sex == "female") {
+    
+    directions_f <- data.frame(
+      direction = round(runif(n = 10000, min = -180, max = 180), 0)
+      )
+    ri <- sample(directions_f$direction, 1, replace = TRUE)
+    
+  } else if (sex == "male" & flag == 0) {
+    
+    # Incorporate path meander of males (sample from a Gaussian distribution of 
+    # possible directions centered on straight ahead (mean = direction of previous step) 
+    # and having a specified circular standard deviation (c.s.d) of 40
+    directions_m <- data.frame(
+        direction = round(rtnorm(1000, mean = ri_prev, sd = 40, lower = -180, upper = 180), 0))
+  
+    # The male will fly in a crosswind direction, sampled from the nonuniform 
+    # probability distribution of angles of flight. After having accounted for
+    # path meander, now we need to know the probability of flight in that direction
+    # according to the tendency to fly in a crosswind direction. 
+    # The "dirs_cast" has these probabilities (added via a join)
+    # Filter out direction probabilities present in directions_m
+    directions <- left_join(directions_m, dirs_cast, by = "direction") %>%
+      distinct(direction, .keep_all = TRUE)
+    
+    # Center direction perpendicular to wind direction
+    directions$direction <- directions$direction + wind_dir_mid + 90
+    
+    # Sample directions according to probability weights
+    directions <- directions %>% replace(is.na(.), 0) # May be issues w/ NA values
+    ri <- sample(directions$direction, size = 1, prob = directions$prob)
+    
+    # If male moth has detected a plume (resulting in a "flag"), then it flies 
+    # directly upwind at maximum flight speed until finding the source. 
+    # TO DO: male may lose the plume and fly elsewhere - how to incorporate this?
+  } else if (sex == "male" & flag == 1) {
+    
+    # Add angle of pheromone trap to this to get angles relative to the trap
+    # Path meander is not considered here since moth has already detected a plume
+    directions <- data.frame(direction = c(-3:3), prob = 1)
+    directions$direction <- directions$direction + theta
+    
+    # Sample row randomly - all have same probability of occurring
+    directions <- directions %>% replace(is.na(.), 0) # May be issues w/ NA values
+    ri <- sample(directions$direction, size = 1)
+    
+  }
+  
+  # Save direction for next step
+  ris <- add_row(ris, ri = ri)
+  
+  # Calculate new position
+  xi.1 <- as.numeric(x_fun(xi = pos_prev$x, di, ri)) # new x coord
+  yi.1 <- as.numeric(y_fun(yi = pos_prev$y, di, ri)) # new y coord
+  
+  # Return direction and position data frames
+  return(list(ris, xi.1, yi.1))
+
+}
+```
+
+The `CM_time step()` function below iterates over a defined number of steps, `n_step`, for a defined number of male and female moths, `n_male` and `n_female`. Each step is 15 seconds. The final output is a data frame, `all_moths_all_pos`, which contains the positions of all moths at each step. The cardinal direction of wind (`wind_card`) must be specified.
+
+```{r}
+CM_time_step <- function(n_male, n_female, n_step, wind_card) {
+  
+  # Wind direction
+  wind_direction <- filter(card_dirs, card_dir == wind_card)
+  wind_dir_mid <- (wind_direction$dir_low + wind_direction$dir_high) / 2
+          
+  # Calculate male casting directions based on wind direction
+  dirs_cast <- Directions_cast_new(wind_dir_mid)
+        
+  # Create data frame of all moths to be modeled with sexes
+  if (n_male > 0 & n_female > 0) {
+    moths <- bind_rows(data.frame(n = 1:n_male, sex = "male"),
+                       data.frame(n = 1:n_female, sex = "female"))
+  } else if (n_male > 0 & n_female == 0){
+    moths <- data.frame(n = 1:n_male, sex = "male")
+    
+  } else if (n_male == 0 & n_female > 0){
+    moths <- data.frame(n = 1:n_female, sex = "female")
+  }
+  
+  # Loop through each moth in data frame
+  for (i in 1:nrow(moths)) {
+    
+    moth_i <- moths[i, ]
+    sex <- moth_i$sex
+    print(paste("moth", rownames(moth_i)))
+    
+    # Run the time step 
+    for (j in 1:n_step) {
+      
+      # If first step, initiate data frames to store results and insert first
+      # row corresponding to initially released moth
+      if (j == 1) {
+        
+        # Randomly sample a release point
+        start_pt <- sample_n(start_pts, 1)
+        #start_pt <- start_pts[i,]
+        
+        # Create a data frame to store positions after each step
+        all_pos <- data.frame(moth = i, sex = sex, step = 0, 
+                              x = start_pt$x, y = start_pt$y, 
+                              dist_near = NA, phero_d = NA)
+      }
+      
+      # Determine the new position of moth using data on previous position
+      pos_prev <- slice_tail(all_pos) # previous position
+
+      ## Incorporating sex-based responses 
+      if (sex == "male") {
+        
+        # Initial direction
+        if (j == 1) {
+          ris <- data.frame(ri = sample(dirs_cast$direction, size = 1, prob = dirs_cast$prob))
+        }
+          
+        if (!exists("flag")) {
+          
+          # If male, find nearest upwind pheromone trap, if any
+          phero_dists <- map(1:nrow(phero_pts), function(i) {
+            # Calculate distance to all traps
+            moth_to_phero <- dplyr::select(pos_prev, x, y) - dplyr::select(phero_pts[i, ], x, y)
+            useful::cart2pol(moth_to_phero$x, moth_to_phero$y, degrees = TRUE) 
+          }) %>%
+            bind_rows() %>%
+            mutate(id = phero_pts$id) %>%
+            dplyr::select(id, r, theta) %>% # r = distance, theta = angle
+            # Join to phero_pts to retrieve x and y coordinates
+            left_join(., phero_pts, by = "id") # re-attach x and y coords of the trap
+          
+          # Upwind pheromone traps less than 30 m from moth 
+          # TO DO: fix last line of code - what range of angles should be considered upwind?
+          # Currently we consider upwind to include directions +/- 45 deg of wind dir
+          # Adding 180 reverse direction relative to trap (otherwise is downwind)
+          phero_nearest <- phero_dists %>%
+            filter(r < 30) %>%
+            filter(., between(theta, wind_direction$dir_low - 45 + 180, 
+                              wind_direction$dir_high + 45 + 180))
+          
+          # If there are no upwind traps, then need to assign a trap distance 
+          # greater than 30 m so that the moth undergoes default movement simulation 
+          if (nrow(phero_nearest) == 0) {
+            phero_near_dist <- 31
+            # Filter out nearest upwind trap
+          } else {
+            phero_nearest <- filter(phero_nearest, r == min(r))
+            phero_nearest_d <- phero_nearest$r
+            all_pos <- mutate(all_pos, phero_d = phero_nearest_d)
+          }
+          
+        }
+        
+        # Assume that moth detects a plume if it's within 30 m of a pheromone trap.
+        # At initial detection, a flag is created and a set of objects is created
+        # for use in the remaining steps. 
+        if (nrow(phero_nearest) == 1 & !exists("flag")) {
+          cat("plume detected\n")
+          flag <- 1
+        }
+        
+        if (exists("flag")) {
+          
+          last_phero_d <- last(all_pos$phero_d)
+
+          # Assume that male doesn't find trap until 1 m away
+          if (last_phero_d > 1) {
+            
+            moth_to_phero <- dplyr::select(phero_nearest, x, y) - dplyr::select(pos_prev, x, y)
+            phero_dists <- useful::cart2pol(moth_to_phero$x, moth_to_phero$y, degrees = TRUE) 
+
+            # Male flies at maximum velocity once plume is detected
+            di <- max(velocities)/4 # Divided by 4 to assume 15 sec time step
+            
+            # Model movement, record positions
+            CM_base_model <- CM_movement(
+              sex, pos_prev = pos_prev, di = di, ris = ris, flag = 1, 
+              theta = phero_dists$theta, dirs_cast = dirs_cast)
+            ris <- CM_base_model[[1]]
+            phero_nearest_d <- phero_dists$r # Distance to nearest trap
+            all_pos <- add_row(all_pos, moth = i, sex = sex, step = j, phero_d = phero_nearest_d,
+                               x = CM_base_model[[2]], y = CM_base_model[[3]])
+          
+          } else {
+            cat("Reached trap\n")
+            break
+          }
+        
+        # Model movement as usual if plume hasn't been detected
+        } else {
+          
+          # Random sample of distance traveled by the moth (di = v x 1 minute)
+          di <- sample(velocities, 1, replace = TRUE)/4 # Divided by 4 to assume 15 sec time step
+          
+          # Model movement, record positions
+          CM_base_model <- CM_movement(sex, pos_prev = pos_prev, di = di, 
+                                   ris = ris, flag = 0, theta = NA, dirs_cast = dirs_cast)
+          ris <- CM_base_model[[1]] # New position
+          all_pos <- add_row(all_pos, moth = i, sex = sex, step = j, phero_d = NA,
+                             x = CM_base_model[[2]], y = CM_base_model[[3]])
+        }
+          
+    } else if (sex == "female") {
+      
+      # Initial direction
+      if (j == 1) {
+        ris <- data.frame(ri = sample(directions_f$direction, 1, replace = TRUE))
+      }
+        
+      # Random sample of distance traveled by the moth (di = v x 1 minute)
+      di <- sample(velocities, 1, replace = TRUE)/4 # Divided by 4 to assume 15 sec time step
+      # Model movement, record positions
+      CM_base_model <- CM_movement(sex, pos_prev = pos_prev, di = di, 
+                                   ris = ris, flag = 0, theta = NA, dirs_cast = dirs_cast)
+      ris <- CM_base_model[[1]] # New position
+      all_pos <- add_row(all_pos, moth = i, sex = sex, step = j, phero_d = NA,
+                         x = CM_base_model[[2]], y = CM_base_model[[3]])
+      }
+    
+    }
+    
+    # Create a column indicating if male was flagged (detected a plume)
+    if (exists("flag")==1) {
+      all_pos$flag <- 1
+      rm(flag) # Remove flag from environment now that sim is done
+      #rm(phero_nearest_all)
+    } else {
+      all_pos$flag <- 0
+    }
+    
+  # Save time step outputs for all moths
+    if (i == 1) {
+      all_moths_all_pos <- all_pos
+    } else {
+      all_moths_all_pos <- add_row(all_moths_all_pos, all_pos)
+    }
+
+  }
+  
+  # Add additional info about input settings
+  all_moths_all_pos <- all_moths_all_pos %>%
+    mutate(n_step = n_step, wind_card = wind_card)
+  
+  return(all_moths_all_pos)
+}
+```
+
+### **Run the Model**
+
+For each of `n` moths, model their movement over a specified number of steps. Note: the model runs much slower for males than females, so please be patient.
+
+As an example, we run the model for 5 males and 5 females for 100 steps using a north wind direction.
+
+```{r, warning=FALSE}
+sim_1 <- CM_time_step(n_male = 5, n_female = 5, n_step = 100, wind_card = "N")
+```
+
+### **Plot the Results**
+
+The `Movement_plot()` function creates a map that depicts the start points, end points, and paths of all moths in the orchard. Required inputs are the output files with all moth positions and a prefix for the file name for the output plot.
+
+```{r}
+Movement_plot <- function(pos_output, sim_name) {
+  
+  # Simulation settings
+  n_step <- unique(pos_output$n_step)
+  wind_card <- unique(pos_output$wind_card)
+  
+  # Plot title
+  plot_title <- paste("Codling moth movement:", n_step, "steps", wind_card, "wind")
+          
+  # Which sexes in output?
+  sexes <- unique(pos_output$sex)
+  
+  # Extract first and last positions for all moths and combine results
+  # The last position may vary for males because some reach a trap and steps end
+  first_pos <- filter(pos_output, step == 0)
+  last_pos <- pos_output %>%
+    group_by(moth) %>%
+    arrange(step) %>%
+    slice(n())
+  both_pos <- bind_rows(first_pos, last_pos) %>%
+    arrange(moth) %>%
+    mutate(step = case_when(step == 0 ~ "start",
+                            step > 0 & flag == 0 ~ "end",
+                            step > 0 & flag == 1 ~ "end (plume detected)"),
+           sex_step = factor(stringr::str_to_sentence(paste(sex, step)),
+            levels = c("Female start", "Female end", "Male start", 
+                       "Male end", "Male end (plume detected)")))
+    
+  # Split out males and females for coloring paths
+  males <- filter(pos_output, sex == "male")
+  males$moth <- factor(males$moth, levels = unique(sort(males$moth)))
+  females <- filter(pos_output, sex == "female")
+  females$moth <- factor(females$moth, levels = unique(sort(females$moth)))
+  
+  # Colors and shapes for start and ends points
+  pts_cols <- c("Female start" = "magenta", "Female end" = "magenta",
+                "Male start" = "dodgerblue4", 
+                "Male end" = "dodgerblue4", "Male end (plume detected)" = "gold1")  
+  pts_shp <- c("Female start" = 21, "Female end" = 23, 
+               "Male start" = 21, "Male end" = 23, "Male end (plume detected)" = 23)
+  
+  # Plot showing start point, end points, and paths for all moths
+  positions_p <- ggplot() + 
+    geom_point(data = phero_pts, aes(x = x, y = y), colour = "black", shape = 24, size = 4) +
+    geom_path(data = males, aes(x = x, y = y, group = moth, color = moth), lwd = 0.4) +
+    scale_colour_manual(values = colorRampPalette(c("lightblue", "midnightblue"))(length(unique(males$moth))),
+                        name = "Male moths") +
+    new_scale_color() +
+    geom_path(data = females, aes(x = x, y = y, group = moth, color = moth), lwd = 0.4) +
+    scale_colour_manual(values = colorRampPalette(c("pink", "magenta4"))(length(unique(females$moth))),
+                        name = "Female moths") +
+    new_scale_color() + # ggnewscale: allows for multiple scale_shape and scale_fill_manual
+    geom_point(data = both_pos, aes(x = x, y = y, fill = sex_step, shape = sex_step), 
+               color = "black", size = 2) +
+    scale_shape_manual(values = pts_shp,  name = "Moth positions") +
+    scale_fill_manual(values = pts_cols, name = "Moth positions") +
+    ggtitle(plot_title) +
+    # Add text labels for each moth at start position
+    geom_text_repel(data = first_pos, aes(x, y, label = moth), 
+                    size = 3, fontface = "bold", max.overlaps = 30) +
+    # Add distance scale
+    ggspatial::annotation_scale(location = "br", bar_cols = c("grey60", "white")) +
+    # Plot theme specifications
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_line(colour = "black"),
+          legend.key.size = unit(0.4, "cm"), legend.text = element_text(size = 9), 
+          legend.title = element_text(size=12), legend.key = element_rect(fill = NA, color = NA),
+          axis.text = element_text(size = 12), axis.title = element_text(size = 14),
+          plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
+    guides(colour = guide_legend(order=1), fill = guide_legend(order = 2), shape = guide_legend(order = 2)) 
+  
+  # Save plot
+  outfile_name <- paste0(sim_name, "_", n_step, "_steps_", wind_card, "_wind.png")
+  ggsave(positions_p, 
+         file = here("Lab8_individual_based_models", "outputs", outfile_name), 
+         height = 7, width = 8, units = c("in"), dpi = 200)
+  
+  return(positions_p)
+}
+```
+
+### **Plot Simulation Results**
+
+Results from `sim_1` are plotted. The triangles depict pheromone traps in the orchard. 
+
+```{r}
+# Simulation with 100 steps and north wind
+# The prefix "sim1" is added the output plot file name
+sim1_plot <- Movement_plot(sim_1, "sim1")
+sim1_plot
+```
+
+### **Exercise 1**
+
+In the four code chunks below, run the simulation with north wind again in addition to three other wind directions. Save plots of your results, making sure to use informative prefixes for file names (e.g., "simulation_NE").
+
+Wind direction = north
+```{r}
+sim_2 <- CM_time_step(n_male = 5, n_female = 5, n_step = 100, wind_card = "N")
+sim2_plot <- Movement_plot(sim_2, "sim2")
+sim2_plot
+```
+
+Wind direction = south
+```{r}
+sim_3 <- CM_time_step(n_male = 5, n_female = 5, n_step = 100, wind_card = "S")
+sim3_plot <- Movement_plot(sim_3, "sim3")
+sim3_plot
+```
+
+Wind direction = west
+```{r}
+sim_4 <- CM_time_step(n_male = 5, n_female = 5, n_step = 100, wind_card = "W")
+sim4_plot <- Movement_plot(sim_4, "sim4")
+sim4_plot
+```
+
+Wind direction = east
+```{r}
+sim_5 <- CM_time_step(n_male = 5, n_female = 5, n_step = 100, wind_card = "E")
+sim5_plot <- Movement_plot(sim_5, "sim5")
+sim5_plot
+```
+
+Wind direction = southeast
+```{r}
+sim_6 <- CM_time_step(n_male = 5, n_female = 5, n_step = 100, wind_card = "SE")
+sim6_plot <- Movement_plot(sim_5, "sim6")
+sim6_plot
+```
+
+**(1)** Explain at least two reasons why your simulation with north wind did not produce the exact same results as before.
+
+*Response*: Stochastic/random elements of the model explain why outputs differ across runs. Starting points are random. Flight velocity for bot sexes is randomly sampled from a uniform distribution. Direction of flight for males is randomly sampled from a Gaussian distribution centered on the direction of the previous step, whereas direction of flight for females is randomly sampled from a uniform distribution.
+
+**(2)** What does casting behavior in males look like in your output plots? 
+
+*Response:* Males always fly in a cross-wind direction regardless of wind direction.
+
+**(3)** Compare and contrast the results for all four simulations - e.g., what directions and paths were males and females taking? Were there differences in the number of times in which males reach pheromone traps?
+
+*Response:* Results will vary, but females should always stay in a small area compared to males, which have more bias in their movement (correlated random walk) due to their flying in a cross-wind direction and going in a direction that is limited to within about 40 degrees from their direction in the previous time step. Females move according to a complete random walk.  
+
+**(4)** Interpret the movement patterns of males and females in your plots in relation to random vs. non-random components of the model. 
+
+*Response*: 
+
+
+### **Exercise 2**
+
+Repeat **two** of your simulations from Exercise 1 after changing the possible velocities that moths may fly. You can do this by changing the following line of code found under "Model description and setup". 
+
+```{r, eval = FALSE}
+velocities <- round(runif(n = 10000, min = 0, max = 20), 2)
+```
+
+**Please save your plots with different file names so that you don't overwrite outputs from previous simulations.**
+
+**(5)** Compare and contrast the output plots to the corresponding plots produced for Exercise 1. Were there any differences in path distances of moths?
+
+*Response*:
+
+
+### **Exercise 3**
+
+The above simulations assumed that moths occurred at randomly chosen starting positions throughout the orchard. In reality, wild moths may be clumped in certain parts of the orchard, or sterile male moths used in SIT programs may be released using a more structured (non-random) method. Repeat the same two simulations as before but this time change the starting points so that moths have a more clumped distribution. This will involve changing the following line of code in `CM_time_step()`. 
+
+```{r, eval=FALSE}
+# Randomly sample a release point
+start_pt <- sample_n(start_pts, 1)
+```
+
+Can you figure out an alternative method to sample the `start_pts` data frame? This might involve subsetting the `start_pts` data frame before taking a random sample, but other approaches are certainly possible. 
+
+**Please save your plots with different file names so that you don't overwrite outputs from previous simulations.**
+
+**(6)** Does clumping impact the number of male moths that reach pheromone traps in the simulation re-runs? Explain.
+
+*Response*: 
+
+
+**(7)** How might clumping of wild males likely impact the success of SIT programs for codling moth?
+
+*Response*: 
+
+
+### **Wrap-up**
+
+**(8)** Describe two additional assumptions made by the model that are likely unrealistic. How do you think they may bias predictions?
+
+*Response*: 
+
+
+**(9)** Male moths would fly towards pheromone attractants emitted by female moths and traps, but our model only considers trap pheromones. How might you modify the code to make males exhibit directional flight towards females if they detect their pheromones? You don't need to write actual code - just brainstorm an approach.
+
+*Response*: 
+
+
+**(10)** How else could this model potentially be improved - i.e., what change might you make next?
+
+*Response*: 
+
+
+**(11)** Discuss your overall results from this lab exercise as well as some potential applications of individual-based movement models.
+
+*Response*:
+
+
+### **Acknowledgements**
+
+Modeling work was funded by a donation to B. Barker from Open Sensory Ltd. in Portland, Oregon.
+
+### **References**
+Adams, C. G., J. H. Schenker, P. S. McGhee, L. J. Gut, J. F. Brunner, and J. R. Miller. 2017. Maximizing information yield from pheromone-baited monitoring traps: estimating plume reach, trapping radius, and absolute density of *Cydia pomonella* (Lepidoptera: Tortricidae) in Michigan apple. Journal of economic entomology 110:305–318.
+
+Adams, C., J. Schenker, P. Weston, L. Gut, and J. Miller. 2020. Path meander of male codling moths (*Cydia pomonella*) foraging for sex pheromone plumes: field validation of a novel method for quantifying path meander of random movers developed using computer simulations. Insects 11:549.
+
+Grieshop, M. J., J. F. Brunner, V. P. Jones, and N. M. Bello. 2010. Recapture of codling moth (Lepidoptera: Tortricidae) males: Influence of lure type and pheromone background. Journal of Economic Entomology 103:1242–1249.
+
+Tyson, R. C. 2014. The princess and the pea: the unexpected importance of movement algorithms. Pages 1-27 *in* Biomat 2013 - International Symposium On Mathematical And Computational Biology (R.P. Mondaini, Ed). World Scientific, Singapore. https://doi.org/10.1142/9789814602228_0001
+
+### **Other resources**
+See R.C. Tyson's [website](https://cmps-people.ok.ubc.ca/rtyson/research.html) which provides more explanation on individual based models for codling moth and the role of wind

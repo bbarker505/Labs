@@ -1,0 +1,5 @@
+"0","# Calculate predicted - forecasted"
+"0","#i.e., probability under current climate - probability under future climate"
+"0","differences <- forecasts %>%"
+"0","  bind_cols(., select(predictions, ""probability_pred"" = probability)) %>%"
+"0","  mutate(difference = probability - probability_pred)"

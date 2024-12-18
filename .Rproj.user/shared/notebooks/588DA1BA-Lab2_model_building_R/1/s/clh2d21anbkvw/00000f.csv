@@ -1,0 +1,6 @@
+"0","# Create an empty data frame to store accumulated DDs based on a LDT of 54F"
+"0","out_all_LDT54 <- data.frame(matrix(ncol = 4, nrow = 0))"
+"0","colnames(out_all_LDT54) <- c(""month"", ""month_day"", ""dd_today"", ""dd_accum"")"
+"0",""
+"0","# Now create and run your loop below"
+"0",""

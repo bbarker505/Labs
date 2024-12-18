@@ -1,0 +1,3 @@
+"0","# Equations"
+"0","H <- R * log(R)/(a*c*(R-1)) # Starting host density"
+"0","P <- log(R)/a # Starting parasitoid density"

@@ -1,0 +1,4 @@
+"0","# Import hooded warbler data"
+"0","hooded_warb_data <- read.csv("
+"0","  here(""Lab6_SDMs_correlative"", ""locations"", ""hooded_warb_locations.csv""))"
+"0","head(hooded_warb_data)"

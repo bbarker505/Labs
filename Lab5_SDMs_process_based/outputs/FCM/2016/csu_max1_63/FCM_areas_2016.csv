@@ -1,0 +1,7 @@
+"type","area","cs_thres","csu_max1"
+"all_excl_sev",10144,0,63
+"all_excl_mod",84496,0,63
+"not_excl",21248,0,63
+"CS_excl",88672,0,63
+"HS_excl",6032,0,63
+"Gt1_gen",96224,0,63

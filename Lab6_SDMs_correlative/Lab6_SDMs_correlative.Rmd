@@ -1,0 +1,435 @@
+---
+author: "Your name"
+title: "Lab 6: Species distribution modeling  (correlative)"
+date: "`r format(Sys.Date(), tz = 'America/Los_Angeles')`"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(here)
+library(terra) # working with rasters
+library(sf) # working with simple features
+library(rnaturalearth) # country/states boundaries
+library(dismo) # SDM functions
+library(ggplot2) # plotting
+library(dplyr) # data wrangling
+```
+
+### **Learning Objectives**
+
+- Predict a species' distribution using a statistical (correlative) approach     
+- Estimate model accuracy using a receiver operating characteristic (ROC) curve  
+- Project a model to new environments  
+- Measure and describe the potential consequences of model extrapolation errors    
+- Increase proficiency in data wrangling and plotting in R      
+
+### **Grading Rubric**
+
+Most of your grade will be for effort - i.e., that you did your best to follow instructions and to answer questions. Each lab is worth 30 pts, so divide this number by the total number of questions to estimate the approximate number of points per question. Points may be deducted for errors in code, not following instructions, or answering questions incorrectly. 
+
+### **Instructions**
+
+There are a set of questions associated with each exercise below that you must complete either during class or on your own time. Record answers to the questions **within** the Markdown (`.Rmd`) file and record your name on line 2. Once you're done with the lab, knit the R markdown file as a Word document (`.docx`) within RStudio by clicking the `Knit` button found in the toolbar (look for a ball of yarn with a needle sticking out of it) and selecting `Knit to Word`. Ignore any warning messages that pop up in the Console during knitting. Submit the `.Rmd` **and** the `.docx` files on Canvas.
+
+### **Introduction**
+
+In this lab, we will use a correlative species distribution model (SDM) to model the probability of occurrence and potential distribution (presence) of the hooded warbler, *Setophaga citrinia*, in North America. The content presented here is a modified version of an R tutorial on SDMs for an online ["Ecological Forecasting & Dynamics Course"](https://course.naturecast.org/lessons/r-species-distribution-models/r_tutorial/). The text tutorial, video tutorial (43 min), and required data is available at this website. 
+
+The hooded warbler is a songbird that occurs in eastern deciduous forests of the U.S., with the core of its population found in southeastern states. Its breeding range in the U.S. stretches from southern Canada south to Florida and west to eastern Texas, where it occupies the understory of mature hardwood forests and wooded swamps. The species is a medium- to long-distance migrant, moving south to winter in Mexico and Central America, as well as parts of the Caribbean and northern South America. 
+
+```{r, figures-side, fig.show="hold", echo=FALSE, out.width = "50%", fig.cap="A female (left) and male (right) hooded warbler. Source: CornellLab (https://www.allaboutbirds.org)"}
+knitr::include_graphics(c(here("Lab6_SDMs_correlative", "images", "hooded-warbler-female.jpg"),
+                          here("Lab6_SDMs_correlative", "images", "hooded-warbler-male.jpg")))
+```
+
+
+```{r, echo=FALSE, outwidth = "400px", fig.cap="Range map for the hooded warbler"}
+knitr::include_graphics(here("Lab6_SDMs_correlative", "images", "hooded-warbler-range-map.jpg"))
+```
+
+### **Exercise: A Correlative Species Distribution Model for the Hooded Warbler**
+
+We will model the probability of occurrence and potential distribution (presence) of the hooded warbler under current and future climates.
+
+#### **Data**
+
+Correlative SDMs require two kinds of data:    
+(1) Spatial data on predictor variables  
+  - Mostly commonly temperature and precipitation, or "bioclimatic" variables that are estimated using these data  
+  - To use SDMs for forecasting, such as to future climates, we need both current and future environmental data  
+(2) Data where a species occurs, and ideally where it is absent  
+  - When absences are unavailable, we use fake absences called "background" or "pseudo-absences"  
+  
+First, we'll import the gridded environmental data as rasters using the `terra` package. The environmental data are stored in raster stacks in `.grd` files. We are working with only two climatic variables - minimum temperature(`tmin`) and precipitation (`precip`). Data for the current time period are most likely averages of climate, such as 30-year climate normals. To predict the warbler's distribution under future climates, we will use CMIP5 50-year projections of `tmin` and `precip` conditions. It appears that current and forecast data have both been scaled, most likely to account for the different range of values for temperature and precipitation. However, this wasn't explained at the tutorial website, so it's not entirely clear. 
+
+```{r}
+# Environmental layers
+# Present-day
+env_data_current <- rast(here("Lab6_SDMs_correlative", "layers", "warbler", "env_current_na.grd"))
+env_data_current
+
+# 50-year projections
+env_data_forecast <- rast(here("Lab6_SDMs_correlative", "layers", "warbler", "env_forecast_na.grd"))
+env_data_forecast
+```
+
+We can get a quick visualization of the raster stack using the [`plot()`](https://rdrr.io/cran/terra/man/plot.html) function in `terra`. 
+
+```{r}
+plot(env_data_current$tmin, col=grDevices::hcl.colors(20, palette = "inferno"))
+plot(env_data_current$precip, col=rev(grDevices::hcl.colors(20, palette = "mako")))
+```
+
+
+Next, we'll import the hooded warbler data, which are contained in a CSV file. These data were derived from the [Breeding Bird Survey of North America](https://www.usgs.gov/centers/eesc/science/north-american-breeding-bird-survey). Notice that the data contains coordinate data for each warbler data point. A warbler is either present (`present == 1`) or absent (`present == 0`).
+
+```{r}
+# Import hooded warbler data
+hooded_warb_data <- read.csv(
+  here("Lab6_SDMs_correlative", "locations", "hooded_warb_locations.csv"))
+head(hooded_warb_data)
+```
+
+#### **Determine the Climate at Presence-Absence Locations**
+
+To get information on the climates where the hooded warbler is present vs. absent, we'll extract `tmin` and `precip` values for each warbler data point using the `extract()` function in `terra`. The results need to be joined back to the warbler data using `bind_cols()` in `dplyr`. Finally, the `present` column is converted to a factor datatype and sorted (`arrange()`) for plotting purposes, and observations with `NA` values are dropped using the `na.omit()` function.
+
+```{r}
+# Extract tmin and precip data (in raster stack) for each observation
+hooded_warb_env <- env_data_current %>% 
+  extract(select(hooded_warb_data, lon, lat))
+head(hooded_warb_env) 
+
+# Combine results and warbler data, convert "present" column to factor, sort, and remove NA
+hooded_warb_data <- bind_cols(hooded_warb_data, hooded_warb_env) %>%
+  mutate(present = factor(present, levels = c(0,1))) %>%
+  arrange(present) %>%
+  na.omit()
+head(hooded_warb_data)
+```
+
+Now we can look at where the species occurs in 2D environmental space.
+
+```{r}
+ggplot(hooded_warb_data, aes(x = tmin, y = precip, color = present)) +
+  geom_point() +
+  scale_color_manual(values=c("0" = "gray70", "1" = "forestgreen")) +
+  theme_bw()
+```
+
+We want our SDM to find regions of climate space where the species is likely to occur.
+
+#### **Modeling the Distribution Using a GLM**
+
+As discussed during class, there are many different algorithms available to model a species' distribution. For this exercise, we will use generalized linear modeling (GLM), which is one of the simplest. The Biodiversity and Climate Change Virtual Laboratory (BCCVL) has a good summary of correlative SDM algorithms including the [GLM method](https://support.bccvl.org.au/support/solutions/articles/6000083213-generalized-linear-model). We'll build a multivariate logistic regression model using the [`glm()`](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/glm) function in base R.  
+
+There are three arguments that you need to define:  
+(1) The model, where we want the `present` column to depend on `tmin` and `precip`  
+(2) The link function, which gives us our logistic regression   
+(3) The data
+
+**(1)** In the code chunk below, create an object named `log_regr_model` with the three necessary arguments. 
+
+```{r}
+# Generalized linear model (logistic regression)
+
+```
+
+A summary of the GLM can obtained using the `summary()` function. 
+
+```{r}
+summary(log_regr_model)
+```
+
+To generate predictions using this GLM, we use the [`predict()`](https://rdrr.io/cran/terra/man/predict.html) function form the `terra` package, which creates spatial model predictions from a fitted model object. Arguments for this function are (1) the raster of environmental conditions, (2) the model, and (3) the type. The type is defined as `repsonse` in order to get the probability of warbler presence across all locations. 
+
+```{r}
+# Spatial model predictions
+predictions_rast <- predict(env_data_current, log_regr_model, type = "response")
+predictions_rast
+```
+
+#### **Plot the Model Predictions**
+
+We'll use a custom plot theme.
+
+```{r}
+# Theme to use for plots
+mytheme <- theme(panel.grid.major = element_blank(), 
+                 panel.grid.minor = element_blank(), 
+                 panel.background = element_rect("white"), panel.border = element_blank(),
+                 axis.title.x = element_blank(), 
+                 axis.title.y = element_blank(), 
+                 axis.ticks = element_blank(),
+                 axis.text.x = element_blank(), 
+                 axis.text.y = element_blank())
+```
+
+For plotting purposes, we'll import boundary information for countries and U.S. states using the `rnaturalearth` package. These `sf` objects are cropped to the same extent as the environmental data using the `st_crop()` function.
+
+```{r}
+# Switch S2 off
+sf_use_s2(FALSE)
+
+# States feature for plots
+north_america <- ne_countries(scale = 10, type = "countries", returnclass = "sf")  %>%
+  st_cast("MULTILINESTRING") %>%
+  st_crop(ext(env_data_current)) 
+states <- ne_states(returnclass = "sf") %>%
+  st_cast("MULTILINESTRING") %>%
+  st_crop(ext(env_data_current)) 
+```
+
+Additionally, we'll convert the prediction raster to a data frame, and then subset hooded warbler data to keep only presence locations. 
+
+```{r}
+# Convert raster to data frame
+predictions <- as.data.frame(predictions_rast, xy = TRUE) %>%
+  rename("probability" = "lyr1")
+```
+
+Below is a plot of model predictions. We'll call it `SDM_current` since we used climate data for the present-day. 
+
+```{r}
+# Plot of SDM based on current climates
+SDM_current <- ggplot() +
+  geom_raster(data = predictions, aes(x = x, y = y, fill = probability)) +
+  geom_sf(data = north_america, linewidth = 0.1, color = "gray50") +
+  geom_sf(data = states, linewidth = 0.1, color = "gray50") +
+  scale_fill_viridis_c(option = "turbo", limits = c(0,1)) +
+  ggtitle("GLM - Probability of Hooded Warbler Presence") +
+  mytheme
+
+# Save the plot
+ggsave(SDM_current, filename = here("Lab6_SDMs_correlative", "maps", "warbler_SDM_current.png"), dpi = 150, units = c('in'), width = 10, height = 6)
+
+# View plot
+SDM_current
+```
+
+**(2)** It's often helpful to visualize the correspondence of observation data with model predictions. In the code chunk below, use the `filter()` function in `dplyr` to create two data subsets: one for presence locations (`presence_loc`) and the other for absence locations (`absence_loc`). Next, visualize these datasets in `ggplot` using the `geom_point()` function (see example in comments below). Copy and paste plot code above to show boundary data and use the custom theme. Make sure to use a different shape and/or color for the two subsets. 
+
+```{r}
+# Presence and absence locations for hooded warbler
+
+
+# Add presence and absence locations to the map
+# Example of using "geom_point()":
+# geom_point(data = yourdata, aes(x = lon, y = lat), size =1, color = "yourcolor", shape = "yourshape")
+
+```
+
+**(3)** Interpret the GLM model predictions in relation to presence-absence locations. Where is the probability of presence highest vs. lowest? Why do you think the hooded warbler might be absent from certain areas where the probability of presence is high?
+
+*Response*: 
+
+
+Sometimes we want to identify locations where we expect the species to occur, rather than visualizing a range of probabilities. To do this, we need a threshold for transforming predictions to a binary score (presence vs. absence). A threshold of `0.5` is often used; however, this value may only work well when the data has an even number of presences and absences. Other methods to identify appropriate thresholds are described in the next section.
+
+```{r, echo=FALSE, fig.cap ="Source: BCCVL (https://support.ecocommons.org.au/support/solutions/articles/6000163162-model-evaluation)"}
+knitr::include_graphics(here("Lab6_SDMs_correlative", "images", "threshold_0.5.png"))
+```
+
+**(4)** In the code chunk below, add code to subset predictions that have a probability of greater than `0.5`. Next, copy and paste the code used to map probability of presence, but instead plot the subsetted predictions. Change the title of your plot to "GLM - Presence-Absence Map for Hooded Warbler (Threshold = 0.5)". 
+
+```{r}
+# Areas where probability of presence is 0.5 to 1
+
+# Presence-absence plot
+
+
+# Save the plot
+
+# View plot
+
+```
+
+#### **Evaluate the Model Performance**
+
+The Receiver Operating Characteristic (ROC) curve is often used to evaluate model performance for binary classification problems, like presence vs. absence models. In a ROC curve plot, the false positives (cases where we predict a species is present but it isn't) is on the x-axis, while the the number of true positives (cases where we predict a species is present and it is present) is on the y-axis. The value for ROC is calculated by summing the area under the ROC curve (AUC). 
+
+The closer the ROC curve follows the y-axis, the larger the area under the curve, and thus the more accurate the model. A value of 0.5 represents a random prediction, and values above 0.5 indicate predictions better than random. In general, AUC values of 0.5–0.7 are considered low and represent poor model performance, values between 0.7 and 0.9 are considered moderate, and values above 0.9 represent excellent model performance.
+
+```{r, echo=FALSE, fig.cap ="Source: BCCVL (https://support.ecocommons.org.au/support/solutions/articles/6000163162-model-evaluation)"}
+knitr::include_graphics(here("Lab6_SDMs_correlative", "images", "ROC_curve.png"))
+```
+
+We'll run the [`evaluate()`](https://www.rdocumentation.org/packages/dismo/versions/0.6-8/topics/evaluate) function from `dismo` to evaluate our GLM using presence/absence data for hooded warbler. This function requires three arguments:  
+(1) presence data (`presence_loc`)  
+(2) absence data (`absence_loc`)  
+(3) the model (`log_regr_model`)  
+
+Given the presence/absence data, the evaluation involves computing confusion matrices (for varying thresholds) and then computing model evaluation statistics for each confusion matrix / threshold. 
+
+```{r}
+# Evaluate predictions
+evaluation <- evaluate(presence_loc, absence_loc, log_regr_model)
+evaluation
+```
+
+We can then plot the ROC curve using the evaluation results.
+
+```{r}
+# Plot ROC curve
+plot(evaluation, 'ROC')
+```
+
+**(5)** Interpret the ROC curve. How do you know that your model performs better than random? What does the AUC value tell you? 
+
+*Response*: 
+
+
+#### **Automatically Choosing Thresholds**
+
+The evaluation results can be used to choose a threshold for transforming predictions to a binary score (presence vs. absence). One common approach is to ensure that the model predicts approximately the right number of presences. This threshold can be chosen automatically using the [`threshold()`](https://rdrr.io/cran/dismo/man/threshold.html) function in `dismo` by defining `prevalence` for the `stat` argument. 
+
+```{r}
+# Threshold to define presence vs. absence 
+thresh_prevalence <- threshold(evaluation, stat = 'prevalence')
+thresh_prevalence
+```
+
+**(6)** In the code chunk below, copy and paste the code for **Q4**, but replace the threshold of `0.5` with the threshold estimated above (use a new column name, such as `thresh_prev`). Additionally, create a new plot named `binary_map2` to show the new presence-absence map. After you're done, answer the question below.
+
+```{r}
+# Areas where probability of presence 
+
+# Plot
+
+
+# Save the plot
+
+# View plot
+```
+
+Which areas were included vs. excluded when using the different thresholds? Why is the automatically chosen threshold likely to be more appropriate for the hooded warbler dataset?
+
+*Response*: 
+
+
+#### **Project the Model to Future Climates**
+
+The same approach as above is used to make predictions for the future (forecasts); however, the CMIP5 50-year climate projections (`env_data_forecast`) are used in the `predict()` function to create spatial model predictions using our GLM.
+
+```{r}
+# Predict presence under future climatic conditions
+# Raster result
+forecasts_rast <- predict(env_data_forecast, log_regr_model, type = "response")
+
+# Conver to data frame
+forecasts <- as.data.frame(forecasts_rast, xy = TRUE) %>%
+  rename("probability" = "lyr1")
+
+# Plot of Probability of Hooded Warbler Presence under future climate
+SDM_forecast <- ggplot() +
+  geom_raster(data = forecasts,
+            aes(x = x, y = y, fill = probability)) +
+  geom_sf(data = north_america, linewidth = 0.1, color = "gray20") +
+  geom_sf(data = states, linewidth = 0.1, color = "gray20") +
+  scale_fill_viridis_c(option = "turbo", limits = c(0,1)) +
+  labs(title = "GLM - Probability of Hooded Warbler Presence in 50 years") +
+  mytheme
+
+# Save the plot
+ggsave(SDM_forecast, filename = here("Lab6_SDMs_correlative", "maps", "warbler_SDM_forecast.png"), dpi = 150, units = c('in'), width = 10, height = 6)
+
+# View plot
+SDM_forecast
+```
+
+We can quantify changes in the probability of presence using the below code, which combines the two sets of predictions and then calculates differences in probabilities.
+
+```{r}
+# Calculate predicted - forecasted
+#i.e., probability under current climate - probability under future climate
+differences <- forecasts %>%
+  bind_cols(., select(predictions, "probability_pred" = probability)) %>%
+  mutate(difference = probability - probability_pred)
+```
+
+**(7)** In the code chunk below, create a map to visualize changes in the probability of presence of hooded warbler under the CMIP5 50-year climate projections. You can name it `SDM_differences` and use "GLM - Change in Probability of Hooded Warbler Presence (Future - Current)" as the title. After you're done, answer the question below.
+
+```{r}
+# Plot differences 
+# Can name it "warbler_SDM_differences"
+
+# Save the plot
+
+
+# View plot
+
+```
+
+How is hooded warbler presence predicted to change under future climates? What are some potential explanations to explain increasing vs. decreasing probabilities of presence?
+
+*Response*: 
+
+
+#### **Identifying Areas With Extrapolation Errors**
+
+The novelty of environments in new regions, time frames, or spatial resolutions may be a major source of uncertainty for model projections. Extrapolation errors occur when values of environmental variables used for model projections (e.g., to future climates) fall outside of the range of values used for model fitting (the training dataset). These errors can be estimated using the Multivariate Environmental Similarity Surfaces (MESS) analysis of [(Elith et al. 2010)](https://doi.org/10.1111/j.2041-210X.2010.00036.x). One should avoid interpreting predictions in areas with extrapolation errors.
+
+The MESS analysis requires data for the variables in the training dataset and data for the same variables in the area to which the model(s) will be projected (`env_data_forecast`). Data for `tmin` and `precip` for each warbler observation is in the `hooded_warb_data` data frame. We'll select these columns and call this data frame `ref_pts`.
+
+```{r}
+# Training dataset for the GLM
+ref_pts <- select(hooded_warb_data, tmin, precip)
+```
+
+Next, we'll use the [`mess()`](https://rdrr.io/rforge/modEvA/man/MESS.html) function in the `dismo` package to conduct the MESS analysis. This function requires rasters to be in a format used in the now obsolete `raster` package (replaced with `terra`), which is why the `stack()` function is required.
+
+```{r}
+# Conduct MESS analysis
+# Older "raster" package required - doesn't seem like dismo has updated to "terra"
+mess_out <- suppressWarnings(mess(raster::stack(env_data_forecast), ref_pts, full = FALSE, verbosity = 0))
+mess_out
+```
+
+In outputs of the MESS analysis, positive values indicate that environmental conditions are similar to the training data points. Conversely, negative values indicate that at least one variable has a value which is outside the range of the environmental range of the training data points. To identify areas with extrapolation errors, we'll convert the output raster to a data frame and subset locations that have negative values (`extrapolation` == 1).
+
+```{r}
+# These are negative values
+extrapolation_areas <- mess_out < 0
+extrapolation_areas_df <- as.data.frame(extrapolation_areas, xy = TRUE) %>%
+  rename("extrapolation" = layer) %>%
+  filter(extrapolation == 1)
+head(extrapolation_areas_df)
+```
+
+Very few areas were predicted to have model extrapolation errors, as shown in the plot below.
+
+```{r}
+# Plot of model extrapolation errors
+error_plot <- ggplot() +
+  geom_raster(data = extrapolation_areas_df, aes(x = x, y = y), fill = "red2") +
+  geom_sf(data = north_america, linewidth = 0.1, color = "gray20") +
+  geom_sf(data = states, linewidth = 0.1, color = "gray20") +
+  labs(title = "MESS Analysis - Areas With Extrapolation Errors") +
+  mytheme
+
+# Save the plot
+ggsave(error_plot, filename = here("Lab6_SDMs_correlative", "maps", "warbler_extrapolation_errors.png"), dpi = 150, units = c('in'), width = 10, height = 6)
+
+# View plot
+error_plot
+```
+
+**(8)** Where did model extrapolation errors occur according to the MESS analysis? What might be the consequence of interpreting model predictions for these areas?
+
+*Response*: 
+
+
+
+**(9)** Describe at least 3 major differences between correlative SDM and process-based SDM approaches, making sure to point out if these differences have advantages and/or disadvantages.
+
+*Response*:
+
+
+
+**(10)** Discuss your overall results from the correlative SDM modeling lab.  
+
+*Response*:
+

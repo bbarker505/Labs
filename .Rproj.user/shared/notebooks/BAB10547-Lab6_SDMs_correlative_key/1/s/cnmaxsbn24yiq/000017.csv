@@ -1,0 +1,6 @@
+"0","# Extract tmin and precip data (in raster stack) for each observation"
+"0","hooded_warb_env <- env_data_current %>% "
+"0","  extract(select(hooded_warb_data, lon, lat))"
+"2","Error in h(simpleError(msg, call)) : 
+  error in evaluating the argument 'y' in selecting a method for function 'extract': unable to find an inherited method for function ‘select’ for signature ‘""data.frame""’
+"

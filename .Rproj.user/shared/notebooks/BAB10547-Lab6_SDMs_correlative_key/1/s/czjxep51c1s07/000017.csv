@@ -1,0 +1,1 @@
+"0","plot(env_data_current$tmin, col=grDevices::hcl.colors(20, palette = ""inferno""))"

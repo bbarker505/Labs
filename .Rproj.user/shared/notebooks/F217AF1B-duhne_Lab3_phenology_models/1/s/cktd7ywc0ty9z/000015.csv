@@ -1,0 +1,5 @@
+"0",""
+"0","# Save plot"
+"0","ggsave(dd_plot, "
+"0","       filename = here(""Lab3_phenology_models"", ""plots"", ""DDaccum_R.png""),"
+"0","       height = 3, width = 5, units = c('in'), device = ""png"", dpi = 300)"

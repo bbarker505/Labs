@@ -1,0 +1,7 @@
+"0",""
+"0","# Combine results and warbler data, convert ""present"" column to factor, sort, and remove NA"
+"0","hooded_warb_data <- bind_cols(hooded_warb_data, hooded_warb_env) %>%"
+"0","  mutate(present = factor(present, levels = c(0,1))) %>%"
+"0","  arrange(present) %>%"
+"0","  na.omit()"
+"0","head(hooded_warb_data)"

@@ -1,0 +1,4 @@
+"0","ggplot(hooded_warb_data, aes(x = tmin, y = precip, color = present)) +"
+"0","  geom_point() +"
+"0","  scale_color_manual(values=c(""0"" = ""gray70"", ""1"" = ""forestgreen"")) +"
+"0","  theme_bw()"

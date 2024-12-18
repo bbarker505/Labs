@@ -1,0 +1,7 @@
+"0","# Threshold to define presence vs. absence "
+"0","thresh_prevalence <- threshold(evaluation, stat = 'prevalence')"
+"0","thresh_prevalence"
+"1","[1]"
+"1"," 0.2086652"
+"1","
+"

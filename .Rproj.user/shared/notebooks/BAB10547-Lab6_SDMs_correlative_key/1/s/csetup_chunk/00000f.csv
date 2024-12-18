@@ -1,0 +1,8 @@
+"0","knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)"
+"0","library(here)"
+"0","library(terra) # working with rasters"
+"0","library(sf) # working with simple features"
+"0","library(rnaturalearth) # country/states boundaries"
+"0","library(dismo) # SDM functions"
+"0","library(ggplot2) # plotting"
+"0","library(dplyr) # data wrangling"

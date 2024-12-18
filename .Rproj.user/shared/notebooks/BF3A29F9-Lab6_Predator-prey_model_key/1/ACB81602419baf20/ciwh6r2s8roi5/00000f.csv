@@ -1,0 +1,8 @@
+"0","# Initial conditions"
+"0","c <- 2 # No. of parasitoids that hatch from infected host"
+"0","a <- 0.5 # Searching efficiency of female parasitoid "
+"0","R <- 2 # Reproductive rate (number of surviving host offspring)"
+"0","time <- 30 # No. of generations (years)"
+"0",""
+"0","# Run the model"
+"0","nb_model_df1 <- NB_model(time, R, c, a)"

@@ -1,0 +1,6 @@
+"0","# These are negative values"
+"0","extrapolation_areas <- mess_out < 0"
+"0","extrapolation_areas_df <- as.data.frame(extrapolation_areas, xy = TRUE) %>%"
+"0","  rename(""extrapolation"" = layer) %>%"
+"0","  filter(extrapolation == 1)"
+"0","head(extrapolation_areas_df)"

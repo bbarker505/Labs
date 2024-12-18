@@ -1,0 +1,384 @@
+---
+author: "Your name"
+title: "Lab 3: Matrix Population Models"
+date: "`r format(Sys.Date(), tz = 'America/Los_Angeles')`"
+format: html
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+    theme: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here) # Start in R project directory
+library(dplyr) # Data wrangling
+library(ggplot2) # Plotting model outputs
+```
+
+### **Learning Objectives**
+
+- Learn how to develop and analyze matrix models based on life table data in R  
+- Understand the components of a population matrix model  
+- Use a population matrix model to project populations into the future, estimate lambda (λ), determine the stable age distribution, and elasticity values.  
+- Learn the `popbio` package see: (https://cran.r-project.org/web/packages/popbio/popbio.pdf) and some of its functions to study matrix population models  
+- Understand the assumptions, uses and limitations of this type of model  
+
+### **Instructions**
+
+There are a total of 15 questions below that you must complete either during class or on your own time before the due deadline. Record answers to the questions **within** the Markdown (`.Rmd`) file and record your name on line 2. Once you're done with the lab, knit the R markdown file as a Word document (`.docx`) within RStudio by clicking the `Knit` button found in the toolbar (look for a ball of yarn with a needle sticking out of it) and selecting `Knit to Word`. Ignore any warning messages that pop up in the Console during knitting. Submit the `.Rmd` **and** the `.docx` files on Canvas.
+
+### **Introduction**
+
+To understand the dynamics of populations – for example, how fast they are growing (or declining) – we must be able to estimate demographic parameters like rates of survival and reproduction. These __vital rates__ are often dependent on the age or developmental stage of the organism (Gotelli 2001). The study of these vital statistics is known as demography. Ecologists have many tools to aid in describing and analyzing the demographic parameters such as birth and death rates of populations. Life tables are one example of such a tool – they provide an age- or stage-specific schedule of survival and reproduction for a particular population. Here we will learn how to convert life table data into matrix format and use matrix math for working with these demographic parameters to describe population dynamics: life cycle diagrams and matrix models.
+
+### **Initial model assumptions**
+
+1) Single species models. We do account for age or stage structure vs. simpler models (such as the predator-prey models that initially do not account for age or stage)  
+2) While growth and development are naturally continuous processes, ages or stages are “lumped” or “binned” into convenient categories  
+3) The Leslie matrix is stationary, that is, birth and death rates are invariant  
+4) There is no sex or genetic structure (usually only females are considered)  
+5) There is no density dependent reproductive or mortality rates  
+\
+
+### **Exercise 1. Overview of matrix models**
+
+#### **1a. Life cycle diagrams**
+
+These simple diagrams provide a visualization of the age structure and vital rates of a population. Each circle represents the age class, where **1** is the youngest and **4** is the oldest. Each straight arrow represents transitions between age classes. Curved arrows indicate that newborns (age class **1**) have been produced by an older class if survival and reproduction are sufficiently high.
+
+**P~i~** = probability that an individual in age class `i` will survive to age class `i + 1`
+
+**F~i~** = reproductive (fertility) rate of each age class `i`
+\
+\
+```{r, echo=FALSE}
+knitr::include_graphics(here("Labs", "Lab3_matrix_models", "Figures", "Life_Cycle_Diagram.png"))
+```
+\
+**Figure 1. Example of a life cycle diagram for a population with four age classes.** Adapted from Donovan and Welden (2002).
+\
+\
+
+#### **1b. Matrix models**
+
+Information from life table data and from a life cycle diagram can be translated into the form of a [matrix](https://en.wikipedia.org/wiki/Matrix_(mathematics)), a rectangular array of values arranged in rows and columns (much like a spreadsheet). The elements of the matrix represent the vital rates (reproductive and survival) that characterize a population. Using matrix algebra, one can determine lambda (λ) (the finite rate of increase = growth rate) and the stable age distribution, project future population sizes, and estimate other demographic parameters based on a population matrix. 
+
+There are two types of matrix models used to describe populations: (1) a [Leslie matrix](https://en.wikipedia.org/wiki/Leslie_matrix) can be used to summarize information about the age-specific survival and fertility rates of a population, and (2) a Lefkovitch matrix is similar but uses uses stages instead of ages. It may not always be possible (or useful) to determine the age of an organism. Instead, we may group an organism’s life history into stages such as egg, larva, and adult for insect, or  seedling, small rosette, large rosette, and reproductive stage for a plant (Gotelli 2001).
+
+#### **1c. Translating information in a life cycle diagram to a Leslie (or Lefkovitch) matrix**
+
+Let’s say we have a population with four age classes as shown in the life cycle diagram above (Fig. 1). We could set up a Leslie matrix from the vital rates shown in this diagram using the conventions illustrated in Fig. 2.
+\
+\
+```{r, echo=FALSE}
+knitr::include_graphics(here("Labs", "Lab3_matrix_models", "Figures", "Leslie_Matrix.png"))
+```
+\
+**Figure 2. Example of assembling a Leslie matrix based on the stage transition rates shown in Fig. 1.** (Adapted from Donovan and Welden 2002).
+\
+\
+
+#### **1d. Population projection using a Leslie matrix**
+
+We can represent the current population by a single column vector with the number of individuals in each age class (**N~0~**). Using matrix multiplication, we can find the number of individuals in each age class (**n~1~** to **n~4~**) in the next time step, represented by another vector (**N~1~**) (Fig. 3). A `0` value in the matrix indicates that vital rates are not relevant to the age class (e.g., newborns don't reproduce). But how do you multiply a matrix by a vector? There are special rules for this. You can do it by hand as illustrated in Fig. 4. 
+\
+```{r, echo=FALSE}
+knitr::include_graphics(here("Labs", "Lab3_matrix_models", "Figures", "Matrix_Multiplication.png"))
+```
+\
+**Figure 3. Using matrix multiplication to project population size.** (Adapted from Donovan and Welden 2002). 
+\
+\
+```{r, echo=FALSE}
+knitr::include_graphics(here("Labs", "Lab3_matrix_models", "Figures", "How_To_Matrix_Multiplication.png"))
+```
+\
+**Figure 4. Example of multiplying a matrix by a vector to project population size.** (Adapted from Donovan and Welden 2002).
+\
+\
+We can then use our two population vectors, **N~0~** (`N0`) and **N~1~** (`N1`) to determine lambda (`λ`), the finite rate of increase. Just add the elements of each vector to determine the population size at each time point.
+
+   `N0 = 20 + 40 + 21 + 9 = 90`
+
+   `N1 = 75.3 + 14 + 24 + 6.3 = 119.6`
+
+Then we use the equation: 
+
+   `(λ) = Nt+1 / Nt`  or
+
+   `(λ) = N1/N0 = 119.6/90 = 1.329`
+
+Of course, doing this by hand, especially to project population size farther into the future would be very tedious. Next we will learn how to use R to simplify working with matrix models.
+\
+\
+
+### **Exercise 2: Convert sowbug life table data into a Leslie model**
+
+#### **2a. Sowbug Life Table**
+
+Our data set is taken from Table 9.1 in Keen and Spain (1991).
+
+```{r, echo=FALSE}
+knitr::include_graphics(here("Labs", "Lab3_matrix_models", "Figures", "Sowbug_Life_Table.png"))
+```
+
+These data can be converted into matrix format to look like:
+
+```{r, echo=FALSE}
+knitr::include_graphics(here("Labs", "Lab3_matrix_models", "Figures", "Life_Table_Matrix.png"))
+```
+
+The commands to create age class names (`Sages`), Leslie matrix (`Sowbug`), and **N~0~** matrix (`S0`) in R are:
+
+```{r}
+Sages <- c("Age 1", "Age 2", "Age 3", "Age 4", "Age 5", "Age 6")
+
+Sowbug <- matrix(c(
+  0.000,3.13,42.53,100.98,118.75,0,
+  0.114,0,0,0,0,0,
+  0,0.1042,0,0,0,
+  0,0,0,0.1391,0,
+  0,0,0,0,0,0.1250,
+  0,0,0,0,0,0,0.0000,0),
+  nrow=6, byrow=TRUE, dimnames=list(Sages,Sages))
+Sowbug
+```
+
+```{r}
+S0 <- c(900,1104,115,16,2,0)
+# note: later on, come back to this step and try wildly different initial
+# population structures, such as assuming that certain age classes 
+# were diminished from pesticides, e.g.:
+#S0 = c(30,60,100,16,2,0)
+```
+
+#### **2b. Matrix Multiplication**
+For each time step in the model, matrix multiplication is performed using the `%*%` operator.
+
+```{r}
+S1 <- Sowbug %*% S0
+S1
+```
+
+### **Questions**
+
+**(1)** Is generation 1 (S1) larger or smaller than the initial generation (S0)?  
+
+
+**(2)** What would be the command to determine generation 2?  
+
+
+#### **2c. Using the `popbio` package**
+
+While we could use the above matrix multiplication for each time step in R or create a loop to automate the process, we will make the process easier using the [`popbio`](https://cran.r-project.org/package=popbio) package, which covers methods described in Matrix Population Models by Caswell (2001) and Quantitative Conservation Biology by Morris and Doak (2002). 
+
+If needed uncomment:
+```{r}
+# install.packages("popbio")
+library(popbio)
+```
+
+We can use the [pop.projection](https://www.rdocumentation.org/packages/popbio/versions/2.7/topics/pop.projection) function to “run” or “project” the matrix model for 10 generations.
+
+For reference, the major outputs of the `pop.projection()` function include:
+
+   >**$lambda**            estimate of (λ) based on the last 2 time steps of the projection
+   
+   >**$stable.stage**     stable age (stage) distribution based on last population estimate
+   
+   >**$stage.vectors**   projects number in each age class/stage at each time step
+   
+   >**$pop.sizes**          total population at each time step
+   
+   >**$pop.changes**    estimate of (λ) at each time step (λ = (Nt+1/Nt) (Stubben and Milligan 2007)
+
+```{r}
+projS <- pop.projection(Sowbug,S0,10)
+projS
+```
+
+We can use this output to plot population growth over time. Lets look at some plots to look at age distribution, the pattern of population growth, and how the age class proportions change over time. First, the age proportions across all 10 generations is visualized using a bar plot. As a comparison, we'll create plots using functions in base R ([`barplot()`](https://www.rdocumentation.org/packages/graphics/versions/3.6.2/topics/barplot)) and `ggplot2` ([`geom_col()`](https://ggplot2.tidyverse.org/reference/geom_bar.html)). 
+```{r}
+# View output
+projS$stable.stage
+
+# Bar plot using base R functions
+barplot(projS$stable.stage, col = "green", ylim = c(0,1),
+ylab = "Age proportions 10 generations", xlab = "Age class", main = "Sowbugs")
+```
+
+Prior to plotting in `ggplot2`, the output needs to be re-formatted. Specifically, there needs to be separate columns for age class and proportions. We force the y-axis to start at `0` and define the lower and upper axis limits using the [`scale_y_continuous()`](https://ggplot2.tidyverse.org/reference/scale_continuous.html) function. 
+```{r}
+# Bar plot using ggplot2
+projS.stable.stage <- data.frame("Age.class" = names(projS$stable.stage),
+                                 "Proportion" = projS$stable.stage)
+projS.stable.stage
+
+# Make the plot
+ggplot(data = projS.stable.stage, aes(x = Age.class, y = Proportion)) +
+  geom_col() +
+  theme_bw() + # Class dark-on-white theme
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1))
+```
+
+The next plot uses the [`matplot()`](https://www.rdocumentation.org/packages/graphics/versions/3.6.2/topics/matplot) function in base R to plot changes in the total population size over time.
+```{r}
+matplot(1:10, projS$pop.sizes, type = "b", pch = 16, ylab = "Population size", xlab = "Age class")
+```
+
+The final plot uses the [`stage.vector.plot()`](https://www.rdocumentation.org/packages/popbio/versions/2.7/topics/stage.vector.plot) function in the `popbio` package to plot changes in the proportions of age classes over time.
+```{r}
+stage.vector.plot(projS$stage.vectors, col = 2:4, ylim = c(0, 1))
+```
+
+### **Questions**
+
+Examine the results and answer these questions.
+
+**(3)** What is the finite rate of increase? What does it mean?  
+
+**(4)** After 10 generations, what is happening to the age vectors and to the age distribution?  
+
+**(5)** Has a “stable” age distribution been reached after 10 generations (or time steps)?  
+
+**(6)** Is age class “6” contributing to the model? Is it necessary to include?  
+
+
+### **Exercise 3: Eigenvector/Eigenvalue Analysis**
+
+#### **3a. The eigen.analysis() function**
+The next step is to use the [`eigen.analysis()`](https://rdrr.io/cran/popbio/man/eigen.analysis.html) function in `popbio` to examine questions such as: What happens when the matrix is projected out to infinity? Does the population grow or become extinct over time? What does the stable age distribution look like? What life stages are most critical in protecting the population from extinction? How different is the initial stage distribution from the stable age distribution? We can only briefly touch on this vast topic. This type of analysis is sometimes referred to as the “canonical form”, "Jacobian form", “finding the roots”, or just “eigenvector/eigenvalue” analysis. 
+
+For reference, the important outputs of the `eigen.analysis` function include:
+
+   >**$lambda1**           (λ) of population (when stabilized)
+
+   >**$stable.stage**      stable age (stage) distribution
+
+   >**$sensitivities**     sensitivity of each vital rate in matrix
+
+   >**$elasticities**      elasticity of each vital rate in matrix
+
+   >**$repro.value**       reproductive value: expected contribution of each individual to current and future reproduction
+
+   >**$damping.ratio**     rate of convergence to a stable stage distribution (Stubben and Milligan 2007)
+
+Sensitivity and elasticity values are both the result of perturbation analysis (which is sensitivity analysis applied to matrix models). The former examines the sensitivity (to lambda (λ) in particular, but other parameters can be examined) using __absolute__ changes to vital rates (perturbations), while the latter (elasticity values) examines sensitivity using __proportionate__ changes to vital rates (which allows changes in survival rates and reproductive rates to all be assessed on the same scale). This is a complex topic but it can be invaluable in population ecology.
+\
+\
+```{r, echo=FALSE}
+knitr::include_graphics(here("Labs", "Lab3_matrix_models", "Figures", "Absolute_vs_Proportionate_diff.png"))
+```
+\
+\
+For example, we can learn how to interpret elasticity values to determine which vital rates contribute the most to the growth rate (λ) of the population, which can be useful information in the management of invasive species or the conservation of threatened species (Conard 2011, Stevens 2009).
+
+To properly assess sensitivity and elasticity values it is helpful to place the values into a life cycle diagram as in this example from Caswell (pgs 228-230):
+\
+\
+```{r, echo=FALSE}
+knitr::include_graphics(here("Labs", "Lab3_matrix_models", "Figures", "Teasel_elasticity_pathways.png"))
+knitr::include_graphics(here("Labs", "Lab3_matrix_models", "Figures", "Teasel_elasticity_discussion.png"))
+
+```
+\
+\
+```{r}
+eS <- eigen.analysis(Sowbug)
+eS
+```
+Repeat plots from previous steps. Also plot elasticities and sensitivities using the popbio [image2](https://rdrr.io/cran/popbio/man/image2.html) function, which creates a grid of colored rectangles to display a projection, elasticity, sensitivity or other matrix:
+
+```{r}
+image2(eS$sensitivities, cex=.8, mar=c(0.5,3,4,1) )
+title("Sensitivity matrix", line=3)
+
+image2(eS$elasticities, cex=.8, mar=c(0.5,3,4,1) )
+title("Elasticity matrix", line=3)
+```
+
+### **Questions**
+
+Examine the results and answer these questions.
+
+**(7)** Notice that S0 (the initial sowbug population vector) was not used in Eigen Analysis. Why not?  
+
+**(8)** Compared to 10 generations, have lambda or the age/stage distributions changed? What does this mean?  
+
+**(9)** What age(s)/stage(s) is lambda most sensitive to perturbation (sensitivity values)? What does this mean?  
+
+**(10)** What age(s)/stage(s) is lambda most sensitive to perturbation (using elasticity values)? What does this mean?  
+
+
+### **Exercise 3: Analysis of at least one optional dataset**
+
+#### **3a. Select a built-in (or use your own) dataset**
+
+The built-in popbio “whale” and “teasel” datasets may produce more interesting findings than our sowbug life table data. You may have a life table or other matrix model dataset of your own choosing as well. Use any functions needed (mostly shown above) to perform `eigen.analysis()` to learn about your selected population. Also try the [`generation.time`](https://search.r-project.org/CRAN/refmans/popbio/html/generation.time.html) and [`net.reproductive.rate()`](https://search.r-project.org/CRAN/refmans/popbio/html/net.reproductive.rate.html) functions of `popbio`. Start with examining the data.
+
+```{r}
+whale
+teasel
+```
+
+Now use the code chunk below to write code, and run it using either (1) the "Run current chunk" option in the "Run" drop down menu in the upper right-hand corner of the Markdown file in RStudio or (2) by clicking the tiny green triangle in the upper right-hand corner of the code chunk. You may prefer to create a separate R script to write your code and then copy and paste the completed code here, as long as it runs correctly. 
+```{r}
+
+
+```
+
+### **Questions**
+
+Examine the results and answer these questions.
+
+**(11)** What are the stable age distributions, stage(s) most sensitive to perturbation, and stage(s) with the highest elasticities in this populations? How do you interpret these findings?  
+
+**(12)** Now that you have performed matrix modeling on at least two datasets:  
+
+**(A)** what are the assumptions inherent in this type of analysis?  
+
+**(B)** What are some of the potential uses and benefits?  
+
+**(13)** How do we perform eigenanalysis (what do we do mathematically)? Hint: look up “Eigendecomposition of a matrix” and read the Wikipedia page.  
+
+
+#### **3b. Topics for further exploration (beyond the limits of this lab)**
+
+From Caswell (2001), matrix models can be expanded to overcome some of the limiting assumptions of the basic form. Topics including density dependence, varying birth and death rates (such as linking with the environment, seasons or due to human interference), dispersal, extinction probabilities, and stochastic models. Also how would one make a matrix model more realistic with regard to seasonality, such as by driving the model using degree-days (which makes sense at least for stage but not so much for age matrix models)? 
+
+### **Questions**
+
+**(14)** What organism would be of most interest to you to use matrix modeling methods to model with? Why?  
+
+**(15)** What addition to simple matrix models would be of most interest to you? Why?  
+
+### **References**
+
+An introduction to using population matrix models in R-6297.pdf
+https://qubeshub.org/publications/1926/serve/1/6297?el=1&download=1 
+
+Population Matrix models – Tutorial in R:
+http://ecovirtual.ib.usp.br/doku.php?id=en:ecovirt:roteiro:pop_str:pstr_mtr
+
+Sensitivity and Elasticity in Matrix population models in R:
+http://ecovirtual.ib.usp.br/doku.php?id=en:ecovirt:roteiro:pop_str:pstr_ser 
+
+https://cran.r-project.org/web/packages/popbio/popbio.pdf 
+
+Caswell, H. 2001. Matrix population models: construction, analysis and interpretation, Second edition. Sinauer, Sunderland, Massachusetts, USA. 713 pp.
+
+Conard, J.M. 2011. Demographic vital rates and population growth: an introduction to projection matrices and elasticity analysis. Teaching Issues and Experiments in Ecology, Vol. 7: Practice #3. Available from http://tiee.esa.org/vol/v7/issues/data_sets/conard/abstract.html
+
+Donovan, T.M., and C.W. Welden. 2002. Spreadsheet exercises in ecology and evolution. Sinauer Associates, Sunderland, MA.
+
+Gotelli, N.J. 2001. A primer of ecology. Sinauer Associates, Sunderland, MA.
+
+Keen, J.D., and R.E. Spain. 1991. Computer simulation in biology: a BASIC introduction. John Wiley & Sons, New York, NY.
+
+Morris, W.F., and D.F. Doak. 2002. Quantitative conservation biology. Theory and practice of population viability analysis. Sinauer Associates, Sunderland, MA.
+
+Stevens, M.H.H. 2009. A primer of ecology with R. Springer Science+Business Media, New York, NY.
+
+Stubben, C.J., and B.G. Milligan. 2007. Estimating and analyzing demographic models using the popbio package in R. Journal of Statistical Software 22(11).

@@ -1,0 +1,34 @@
+"0","# Import state boundary shapefile
+# Data have NAD83 projection
+states <- st_read(here(""Intro_R_mapping"", ""data"", ""USA_lower48_NAD83.shp""))
+"
+"1","Reading layer `"
+"1","USA_lower48_NAD83"
+"1","' from data source "
+"1","
+"
+"1","  "
+"1","`"
+"1","C:\Users\barkebri\Documents\Teaching\HORT499.599\Wint24\Labs\Intro_R_mapping\data\USA_lower48_NAD83.shp"
+"1","' "
+"1","
+"
+"1","  "
+"1","using driver `"
+"1","ESRI Shapefile"
+"1","'"
+"1","
+"
+"1","Simple feature collection with 49 features and 5 fields"
+"1","
+"
+"1","Geometry type: MULTIPOLYGON
+"
+"1","Dimension:     XY
+"
+"1","Bounding box:  "
+"1","xmin: -124.7328 ymin: 24.95638 xmax: -66.96927 ymax: 49.37173"
+"1","
+"
+"1","Geodetic CRS:  NAD83
+"

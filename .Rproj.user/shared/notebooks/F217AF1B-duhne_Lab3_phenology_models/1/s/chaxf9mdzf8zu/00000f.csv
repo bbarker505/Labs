@@ -1,0 +1,2 @@
+"0","out_all2 <- data.frame(matrix(ncol = 5, nrow = 0))"
+"0","colnames(out_all2) <- c(""month"", ""day"", ""year"", ""dd_today"", ""dd_accum"")"

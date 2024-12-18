@@ -1,0 +1,8 @@
+"0","# Save raster outputs"
+"0","writeRaster(DDtotal, paste0(output_dir, ""/"", spp, ""_Total_DDs_"", yr, "".tif""), overwrite=TRUE)"
+"0","writeRaster(NumGen, paste0(output_dir, ""/"", spp, ""Num_Gens_"", yr, "".tif""), overwrite=TRUE)"
+"0","writeRaster(coldunitsCUM, paste0(output_dir, ""/"", spp, ""_Cold_Stress_Units_"", yr, "".tif""),  overwrite=TRUE)"
+"0","writeRaster(coldEXCL, paste0(output_dir, ""/"", spp, ""_Cold_Stress_Excl_"", yr, "".tif""), overwrite=TRUE)"
+"0","writeRaster(heatunitsCUM, paste0(output_dir, ""/"", spp, ""_Heat_Stress_Units_"", yr, "".tif""), overwrite=TRUE)"
+"0","writeRaster(heatEXCL, paste0(output_dir, ""/"", spp, ""_Heat_Stress_Excl_"", yr, "".tif""), overwrite=TRUE)"
+"0","writeRaster(allEXCL, paste0(output_dir, ""/"", spp, ""_All_Stress_Excl_"", yr, "".tif""), overwrite=TRUE)"

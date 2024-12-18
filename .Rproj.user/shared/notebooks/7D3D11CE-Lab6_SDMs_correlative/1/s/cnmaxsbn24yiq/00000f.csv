@@ -1,0 +1,4 @@
+"0","# Extract tmin and precip data (in raster stack) for each observation"
+"0","hooded_warb_env <- env_data_current %>% "
+"0","  extract(select(hooded_warb_data, lon, lat))"
+"0","head(hooded_warb_env) "

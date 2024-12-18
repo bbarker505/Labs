@@ -1,0 +1,87 @@
+---
+title: '**Copying Lab Assignments**'
+subtitle: '**Ecological Systems Modeling (Winter 2024)**'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+<style type="text/css">
+body{ /* Normal  */
+      font-size: 14px;
+  }
+p {line-height: 1.5em;}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+```
+
+### Before you start
+
+Make sure that you have created the `Labs` folder in you home directory before proceeding. We did this step during the introduction to RStudio. 
+
+### Lab assignments in Jupyter Hub
+
+All of your lab assignments and coding tutorials will be located in a folder (directory) named `hub_data_share`. You will see `hub_data_share` in your home directory after starting your server. (Note: you won't have all of the other directories showing in my screenshot below). You will need to copy folders from `hub_data_share` to the `Labs` folder in your home directory to complete your lab assignments. The below steps describe how to do this. 
+
+```{r, echo = FALSE, out.width= "600px"}
+knitr::include_graphics(here("Guidance_docs", "images", "copy_labs_1.png"))
+```
+
+### **Method 1**: Using the Terminal in RStudio
+
+1. Open up RStudio and click on the Terminal tab in the Console pane (bottom-left)
+
+```{r, echo = FALSE, out.width= "600px"}
+knitr::include_graphics(here("Guidance_docs", "images", "copy_labs_2.png"))
+```
+
+2. To copy a folder that contains files for `Intro_R_part1` in `hub_data_share` to your `Labs` folder in your home directory, you would type the following command in Terminal:
+
+`cp -ur $HOME/hub_data_share/Intro_R_part1 $HOME/Labs/`
+
+```{r, echo = FALSE, out.width= "600px"}
+knitr::include_graphics(here("Guidance_docs", "images", "copy_labs_3.png"))
+```
+
+<br>
+<br>
+If it worked correctly, you should see the folder appear in the `Files` tab of the Files/Plots/Packages/etc. pane, as below. 
+
+```{r, echo = FALSE, out.width= "600px"}
+knitr::include_graphics(here("Guidance_docs", "images", "copy_labs_4.png"))
+```
+
+Explanation:  
+- The `cp` command copies files and directories.  
+- The `-u` option indicates copying only new and missing files to the destination, and the `-r` option indicates drilling down through the directory structure. For more information on `cp`, please type in Terminal: `cp --help`.  
+- `$HOME` is the path to your home directory, which is `/home/your_onid`.  
+
+You can also use `cp` to copy single files. In this case, you wouldn't need to include the `-r` option. For example, if you just wanted a single file named `file1.txt` from `hub_data_share` to your `Labs` folder, you could enter the following command:
+
+`cp $HOME/hub_data_share/file1.txt $HOME/Labs/`
+
+
+### **Method 2**: Using the Terminal in Jupyter Hub
+
+1. In the `Launcher` tab, scroll down to the `Other` section
+
+2. Click on `Terminal` (black box with money symbol) to start a session   
+
+```{r, echo = FALSE, out.width= "600px", fig.align="right"}
+knitr::include_graphics(here("Guidance_docs", "images", "copy_labs_5.png"))
+```
+
+3. Follow the same steps as #2 in Method 1, i.e., type your command such as:
+
+`cp -ur $HOME/hub_data_share/Intro_R_part1* $HOME/Labs/`
+
+```{r, echo = FALSE, out.width= "600px", fig.align="right"}
+knitr::include_graphics(here("Guidance_docs", "images", "copy_labs_6.png"))
+```
+
+### Warning
+
+Be very, very careful about deleting your files on the server. There might no way to recover them. Functions that you want to AVOID in the Terminal are `rm` (remove file) and `rm -rf` (remove directory).

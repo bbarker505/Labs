@@ -1,0 +1,3 @@
+"0","# Convert raster to data frame"
+"0","predictions <- as.data.frame(predictions_rast, xy = TRUE) %>%"
+"0","  rename(""probability"" = ""lyr1"")"

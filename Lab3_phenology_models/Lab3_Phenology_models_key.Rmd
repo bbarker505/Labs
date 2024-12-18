@@ -1,0 +1,423 @@
+---
+author: "Your name"
+title: "Lab 2: Degree-Day Modeling"
+date: "`r format(Sys.Date(), tz = 'America/Los_Angeles')`"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(here) # Start in R project directory
+library(dplyr) # Data wrangling
+library(ggplot2) # Plotting model outputs
+library(knitr) # Including graphics
+library(readr) # Importing weather data
+```
+
+### **Learning Objectives**
+
+- Produce, visualize, and interpret phenology model predictions  
+- Describe how and why phenology varies both within and among years  
+- Practice using base R and tidyverse functions  
+
+### **Grading Rubric**
+
+Most of your grade will be for effort - i.e., that you did your best to follow instructions and to answer questions. Each lab is worth 30 pts, so divide this number by the total number of questions to estimate the approximate number of points per question. Points may be deducted for errors in code, not following instructions, or answering questions incorrectly. 
+
+### **Instructions**
+
+There are a set of questions associated with each exercise below that you must complete either during class or on your own time. Record answers to the questions **within** the Markdown (`.Rmd`) file and record your name on line 2. Once you're done with the lab, knit the R markdown file as a Word document (`.docx`) within RStudio by clicking the `Knit` button found in the toolbar (look for a ball of yarn with a needle sticking out of it) and selecting `Knit to Word`. Ignore any warning messages that pop up in the Console during knitting. Submit the `.Rmd` **and** the `.docx` files on Canvas.
+
+### **Review: Calculating Degree-Days**
+
+DD calculations are based on the area under the diurnal temperature curve and between the thresholds. A visual representation of DDs for two 24-hour periods is below. The gray areas in the curves represent the number of DDs that fall between a $LDT$ and $UDT$, for each 24-hour period.
+
+```{r, echo=FALSE}
+knitr::include_graphics(here("Lab3_phenology_models", "images", "DD_plot.png"))
+```
+
+Assumptions of DD models include: 
+
+1) Temperatures of a 24-hour day follow a defined curve  
+2) The rate of development is presumed to be a straight line directly related to temperature  
+
+#### **Calculation Method: Simple Average**
+
+DDs can be calculated using a simple formula for the average daily temperature, calculated from the daily $T_{max}$ and $T_{min}$, minus the $LDT$
+
+[(daily $T_{max}$ + $T_{min}$)/2] – $LDT$
+
+For example, a day where the high is 72$^\circ$F and the low is 44$^\circ$F would accumulate 8 DDs using 50$^\circ$F as the $LDT$:  
+
+$$[(72 + 44)/2] – 50 = 8$$
+
+For a site with $T_{max}$ and $T_{min}$ data available, the different methods for calculating DDs are simple average, single triangle, double triangle, single sine, and double sine. More complex DD equations may result in more precise DD estimates.
+
+### **Exercise 1: Modeling Phenology of the Asian Longhorned Beetle** 
+
+In the following exercise, we will use the simple formula to model the phenology of [Asian longhorned beetle](https://en.wikipedia.org/wiki/Asian_long-horned_beetle), *Anoplophora glabripennis*. The Asian loghorned beetle is an invasive insect in North America that poses a serious threat to hardwood trees in natural and urban areas. It currently infests areas in Massachusetts, New York and Ohio. USDA APHIS  estimates that the beetle has the potential to cause more damage than Dutch elm disease, chestnut blight and gypsy moths combined.
+
+```{r, echo=FALSE, fig.align = "center", out.width = "300px", fig.show="hold", fig.cap = "Adult Asian longhorned beetle (left) and tree damage caused by larvae (right). Source: https://natural-resources.canada.ca/"}
+knitr::include_graphics(c(here("Lab3_phenology_models", "images", "Asian_longhorned_beetle_1000.jpg"),
+                        here("Lab3_phenology_models", "images", "ALB_damage.jpg")))
+```
+
+#### **Degree-Day Model**
+
+First, we import weather data for Corvallis in 2021 derived from an Agrimet station (station ID = CRVO).
+
+The code chunk below contains code presented in Lab 2. However, notice that some base R functions were replaced with `tidyverse` functions.
+
+```{r}
+# Import and format weather data
+# First line is skipped because it's descriptive info (not data)
+weath_data <- read_table(file = here("Lab3_phenology_models", "weather_data", "CRVO21.txt"),
+                         skip = 1, col_names = FALSE,
+                         col_types = cols(X7 = col_skip())) %>%
+  data.frame() %>%
+  rename(c("month" = 1, "day" = 2, "tmax" = 3, "tmin" = 4, "prec" = 5, "dd50" = 6))
+```
+
+Below, we create an empty data frame to store results of the DD model and define the number of days, as we did in Lab 2. 
+
+```{r}
+# Create an empty data frame to store accumulated DDs
+out_all <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(out_all) <- c("month", "month_day", "dd_today", "dd_accum")
+
+# Number of days for daily time step
+number_of_days <- nrow(weath_data)
+```
+
+**(1)** In the code chunk below, use code from Lab 2 to create a simple DD model for Asian long-horned beetle. The model for this species at [USPest.org](http://uspest.org) uses an LDT of 50F. 
+Remember to:  
+(1) define the LDT (name it `LDT`)   
+(2) initialize an object for DD accumulation (`dd_accum`)  
+(3) use a `for` loop for the daily time step  
+(4) include informative comments (as in Lab 2)  
+
+**IMPORTANT NOTE**: there was a typo in Lab2 (sorry)! The formula for the simple equation should be:
+`dd_today <- (tmax + tmin)/2 - LDT`
+
+Run the model when you're done.
+
+```{r}
+# Insert your code here
+LDT <- 50
+
+# Initialize an object for degree-day accumulation
+dd_accum <- 0
+
+# Step through days of year
+for (i in 1:number_of_days) {
+
+  # Tmin and Tmax for day of year
+  tmax <- weath_data$tmax[i]
+  tmin <- weath_data$tmin[i]
+  
+  # Use simple average DDs, more complex formulas are available and preferable
+  dd_today <- (tmax + tmin)/2 - LDT
+  
+  # Can't have negative degree-days (change to 0)
+  if (dd_today < 0) {
+    dd_today <- 0
+  }
+  
+  # Accumulate degree-days
+  dd_accum <- dd_accum + dd_today
+  
+  # Put results for day in a data frame
+  out_i <- data.frame("doy" = i,
+                      "month" = weath_data$month[i],
+                      "month_day" = weath_data$day[i],
+                      "dd_today" = dd_today,
+                      "dd_accum" = dd_accum)
+  
+  # Attach results for day to all results 
+  out_all <- bind_rows(out_all, out_i) 
+}
+
+max(out_all$dd_accum)
+```
+
+#### **Get Dates of Phenological Events**
+
+We'd like to know when to expected specific  phenological events for Asian longhorned beetle, particularly those that are relevant to its surveillance and management. According the USPest.org model, 1% adult emergence occurs at `806` DDs and 1st egg hatch occurs at `1438` DDs. On which dates would these events occur in 2021 according to our simple model? To address this question, we can use the [`filter()`](https://dplyr.tidyverse.org/reference/filter.html) and [`slice_min()`](https://dplyr.tidyverse.org/reference/slice.html) functions in the `dplyr` package to subset the rows of the `out_all` data frame in which `dd_accum` is closest to these values. The date (day of year) of the event is saved as a new object, `adult_emerg_doy`.
+
+**(2)** Below is the code for 1% adult emergence. Repeat this step for 1st egg hatch, naming the two new objects `egg_hatch` and `egg_hatch_doy`. 
+
+```{r}
+# Date of adult emergence
+adult_emerg <- out_all %>%
+  filter(dd_accum >= 806) %>% # subset rows where dd_accum >= 806
+  slice_min(dd_accum) # keep row with values closest to 806
+# View output
+adult_emerg
+# Day of year of event
+adult_emerg_doy <- adult_emerg$doy
+
+# Date of egg hatch
+egg_hatch <- out_all %>%
+  filter(dd_accum >= 1438) %>% # subset rows where dd_accum >= 1438
+  slice_min(dd_accum) # keep row with values closest to 1438
+egg_hatch
+egg_hatch_doy <- egg_hatch$doy
+```
+
+#### **Plotting and Analysis**
+
+We will create and save a plot of the results using the [`ggplot()`](https://www.rdocumentation.org/packages/ggplot2/versions/3.4.0/topics/ggplot) function of the `ggplot2` package. A line plot is created using [`geom_line()`](https://www.rdocumentation.org/packages/ggplot2/versions/1.0.1/topics/geom_line) to depict DD accumulation over the entire year.
+
+First, we create a custom x-axis in which axis breaks correspond approximately with the first day of each month of the year (e.g., `1` = Jan 1, `32` = Feb 1, etc.). The custom x-axis labels `x_labels` present each break as the first of each month (e.g., `1-1`, `2-1`, etc.). This is created by using the [`paste()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/paste) function to literally paste together all unique months of the year present in the data (in the `out_all$month` column) to the number `1`. 
+
+```{r}
+# Create and save a simple plot
+# New set of x-axis labels (dates vs. day of year)
+days <- c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 365)
+x_labels <- paste(c(unique(out_all$month), 1), 1, sep = "-")
+```
+
+Next, we pass `out_all` to the `data` argument of the `ggplot` function, and  the `x` and `y` variables to be plotted (day of year and DD accumulation, respectively) within the aesthetic ([`aes()`](https://www.rdocumentation.org/packages/ggplot2/versions/1.0.1/topics/aes)) function. A simple [plot theme](https://datacarpentry.org/R-ecology-lesson/04-visualization-ggplot2.html#ggplot2_themes) (`theme_bw`) is applied, titles for the x- and y-axis are added, and specifications are made for both axes. The `+` operator is used in `ggplot2` to add layers to plots. 
+
+```{r}
+# Plot
+dd_plot <- ggplot(data = out_all, aes(x = doy, y = dd_accum)) +
+  geom_line() + # for trend lines, time series, etc.
+  theme_bw() + # simple black and white plot theme
+  ylab("Cumulative DDs (LDT = 50F)") + # y-axis title
+  xlab("Day of year - 2021") + # x-axis title
+  # Both axes start at 0, x-axis uses custom breaks and labels
+  scale_x_continuous(expand = c(0, 0), breaks = days, labels = x_labels) +
+  # Make the y-axis 100 units larger than the max value in data
+  scale_y_continuous(expand = c(0, 0), 
+                     limits = c(0, max(out_all$dd_accum) + 100)) 
+
+```
+
+Now let's view the plot, and save it as a PNG file using `ggsave()`. 
+
+```{r}
+# View plot
+dd_plot
+
+# Save plot
+ggsave(dd_plot, 
+       filename = here("Lab3_phenology_models", "plots", "DDaccum_R.png"),
+       height = 3, width = 5, units = c('in'), device = "png", dpi = 300)
+```
+
+We can depict the dates of phenological events on our plot with dashed red lines using the [`geom_vline()`](https://www.rdocumentation.org/packages/ggplot2/versions/0.9.1/topics/geom_vline) function and label them using [`geom_text()`](https://www.rdocumentation.org/packages/ggplot2/versions/0.9.1/topics/geom_text). The day of year for each phenological event is used to define x-intercepts for these geoms (the label is shifted 5 days later so it doesn't overlap with the line).
+
+**(3)** The plot below shows the date for 1% adult emergence. Add the appropriate code to show the date for 1st egg hatch.
+
+```{r}
+dd_plot +
+  geom_vline(xintercept = adult_emerg_doy, color ="red", linetype = "dashed", size = 0.75) +
+  geom_text(aes(x = adult_emerg_doy + 5, label="1% Adult emerg.", y = 2200), colour="red", size = 4, angle=90) +
+  geom_vline(xintercept = egg_hatch_doy, color ="red", linetype = "dashed", size = 0.75) +
+  geom_text(aes(x = egg_hatch_doy + 5, label="1st Egg hatch", y = 2200), colour="red", size = 4, angle=90) 
+```
+
+
+### **Exercise 2: Annual Variation in Phenology of Asian Longhorned Beetle**
+
+In the next exercise, we'll expand on the example above by modeling phenology of Asian longhorned beetle across multiple years. The only differences in the model is that (1) weather data for multiple years are needed, and (2) a second `for` loop is needed to model phenology over multiple years **and** days. 
+
+#### **Setup**
+
+**(4)** First, we create a vector of years between `2012` and `2021`. Do this step yourself using the `:` operator and name the vector `years`.
+
+```{r}
+years <- c(2012:2021)
+```
+
+Next we create a vector that contains the name of weather data files for each year using the [`list.files()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/list.files) function. Weather data are from the same Corvallis weather station as above.
+
+```{r}
+all_files <- list.files(here("Lab3_phenology_models", "weather_data"))
+all_files
+```
+
+Following the first example, we'll create an empty data frame to store the model results. However, this time the data frame will include a column named `year` so we can delineate which predictions correspond with which year. 
+
+```{r}
+out_all2 <- data.frame(matrix(ncol = 5, nrow = 0))
+colnames(out_all2) <- c("month", "day", "year", "dd_today", "dd_accum")
+```
+
+The loop for years starts with `1` and runs through all integer values up to the total number of years (`10`). A variable named `j` is used as an index that is iteratively replaced by each value in the vector `1:length(years)`. The [`length()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/length) function returns the length of vectors (or other object types), which in our case is `10`. So, `1:length(years)` returns all values between `1` and `10`.
+
+```{r}
+# Length of years
+length(years)
+
+#1:length of years
+1:length(years)
+```
+
+#### **Multi-Year DD Model**
+
+The entire multi-year DD model is below. 
+
+```{r message=FALSE}
+# Initialize an object for degree-day accumulation
+dd_accum <- 0
+
+# Step through years
+for (j in 1:length(years)) {
+
+  # Weather data for year plus column names (skip column 7 with comments)
+  weath_data <- read_table(file = here("Lab3_phenology_models", "weather_data", all_files[j]),
+                         skip = 1, col_names = FALSE,
+                         col_types = cols(X7 = col_skip())) %>%
+  data.frame() %>%
+  rename(c("month" = 1, "day" = 2, "tmax" = 3, "tmin" = 4, "prec" = 5, "dd50" = 6))
+  
+  # Days of year in data (365 for non-leap years, 366 for leap years)
+  number_of_days <- nrow(weath_data)
+    
+  # Initialize an object for degree-day accumulation
+  dd_accum <- 0
+  
+  # Step through days (same daily loop as above)
+  for (i in 1:number_of_days) {
+  
+    # Tmin and Tmax for day, but convert from degrees F to C
+    tmax <- weath_data$tmax[i]
+    tmin <- weath_data$tmin[i]
+    
+    # Use simple average DDs, more complex formulas are available and preferable
+    dd_today <- (tmax + tmin)/2 - LDT
+  
+    # Can't have negative degree-days (change to 0)
+    if (dd_today < 0) {
+      dd_today <- 0
+    }
+  
+    # Accumulate degree-days
+    dd_accum <- dd_accum + dd_today
+
+    # Add results to output data frame
+    out_all2 <- rbind(
+      out_all2, data.frame("doy" = i,
+                         "month" = weath_data$month[i],
+                         "day" = weath_data$day[i],
+                         "year" = years[j],
+                         "dd_today" = dd_today,
+                         "dd_accum" = dd_accum)
+      )
+  }
+  
+}
+```
+
+#### **Plotting and Analysis**
+
+We'll use `ggplot2` again to plot and save the results. The only difference from above is that a `group` variable is defined as `year` within the aesthetic (`aes`) function. This tells `ggplot` that it needs to combine results for all years into a single plot. Additionally, the `color` variable in the aesthetic function tells `ggplot` to color lines by year. A custom color palette for the lines is applied using  [`scale_color_brewer()`](https://ggplot2.tidyverse.org/reference/scale_brewer.html). 
+
+One small edit is needed before plotting the result. Currently, the `year` column is in integer format, which causes `ggplot` to use a continuous color palette rather than a categorical color palette. We can solve this problem by converting `year` to a factor.
+
+```{r}
+str(out_all2)
+out_all2$year <- factor(out_all2$year)
+str(out_all2)
+```
+
+Create the plot.
+
+```{r}
+# Plot
+dd_plot2 <- ggplot(data = out_all2, aes(x = doy, y = dd_accum, group = year, color = year)) +
+  geom_line() + # for trend lines, time series, etc.
+  theme_bw() + # simple black and white plot theme
+  ylab("Cumulative DDs (LDT = 50F)") + # y-axis title
+  xlab("Day of year") + # x-axis title
+  # Custon color palette
+  scale_color_brewer(palette="Spectral", direction = -1) +
+  # Both axes start at 0, x-axis uses custom breaks and labels
+  scale_x_continuous(expand = c(0, 0), breaks = days, labels = x_labels) +
+  # Make the y-axis 100 units larger than the max value in data
+  scale_y_continuous(expand = c(0, 0), 
+                     breaks = seq(0, max(out_all2$dd_accum), 400),
+                     limits = c(0, max(out_all2$dd_accum) + 100)) 
+
+```
+
+View the plot and save it as a PNG file. 
+
+```{r}
+dd_plot2
+
+# Save plot
+ggsave(dd_plot2, 
+       filename = here("Lab3_phenology_models", "plots", "DDaccum_10yr_R.png"),
+       height = 3, width = 5, units = c('in'), device = "png", dpi = 300)
+
+```
+
+To determine the predicted dates of 1st egg hatch by Asian longhorn beetle over the 10 year period, the `filter()` function is again used to subset the rows of the `out_all2` data frame in which `dd_accum` is closest to `1438`. However, the `group_by()` function in the `dplyr` package is used to group the output by the `year` column before filtering because we're interested in knowing dates for every single year. 
+
+```{r}
+egg_hatch2 <- out_all2 %>%
+  group_by(year) %>% # group by year
+  filter(dd_accum >= 1438) %>% # subset rows where dd_accum >= 1438
+  slice_min(dd_accum) # keep row with values closest to 1438
+egg_hatch2
+```
+
+**(5)** On which years was 1st egg hatch predicted to be earliest vs. latest? What does this tell you about the temperatures on those two years?
+
+*Response*: Earliest in 2015 (7/30) and latest in 2012 (8/22). These results suggest that 2015 had warmer temperatures than other years, whereas 2012 had cooler temperatures, at least during the period in which the insect was developing.
+
+
+**(6)** Compare your results for *3 years* (e.g., 2019, 2020, and 2021) to those produced by the USPest.org model. Follow these instructions:  
+
+(a) Visit the model app at [USPest.org](https://uspest.org/dd/model_app).  
+(b) In the Station tab, type in CRVO and select this station.    
+(c) In the Model tab, select "asian longhorned beetle" and enter a Start Date of January 1 for each of your chosen years. Keep default values for other options.  
+(d) Click on the Output tab and check the "show model inputs table" in the Model Inputs section.    
+(e) Look at the Model Output section (you can also look at the graph) and document the date of 1st egg hatch for the given year.        
+
+According to the USPest.org model, when did 1st egg hatch occur for each of your 3 chosen years? Are these dates earlier or later than dates predicted by your model (i.e., dates in `egg_hatch2`)? Optional: enter a code chunk below if it helps in making comparisons. 
+
+*Response*: 
+USPEST
+2012: 8-14 
+2013: 7-30
+2014: 7-28
+
+vs. Our model
+2012: 8-22
+2013: 8-6
+2014: 8-5
+
+Simple average model consistently predicts later dates than single sine model. On average, by about 1 week.
+
+
+```{r}
+sine <- as.Date(c("8/14/2012", "7/30/2013", "7/28/2014"), "%m/%d/%Y")
+simple <- as.Date(c("8/22/2012", "8/6/2013", "8/5/2014"), "%m/%d/%Y")
+diff <- sine - simple
+```
+
+**(7)** The model at USPest.org uses the single sine formula to calculate degree-days. This method uses the day's $T_{min}$ and $T_{max}$ to produce a sine curve over a 24-hour period, and then estimates DDs for that day by calculating the area above the threshold and below the curve. Why is this method likely to be more accurate than the simple average method used in our model?
+
+*Response*: On days when the outside air temperature crosses the base temperature, the accuracy of the simple average method is typically very poor. For locations with temperatures that hover around the base temperature, it will typically underestimate degree days significantly. The impact of this inaccuracy depends on the climate and the choice of base temperature.
+
+
+**(8)** Name at least one assumption made by both models that could be a source of error in predicting phenology.
+
+*Response*:
+
+
+**(9)** As this exercise demonstrated, the timing of phenological events can vary across years. Think of your favorite ecological system and describe how a phenology model might help you make better management decisions. For example, you might think about applications for invasive species, species of conservation concern, or farming.
+
+*Response*:
+
+
+**(10)** Discuss your overall results from the phenology model exercises. 
+
+*Response*:
+

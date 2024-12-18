@@ -1,0 +1,5 @@
+"0","ggplot(directions_f, aes(x = directions)) + "
+"0","  geom_histogram(color = ""black"", binwidth = 10) +"
+"0","  scale_x_continuous(""Direction"", expand = c(0,0), breaks = seq(-180, 180, 20)) +"
+"0","  scale_y_continuous(""Count"", expand = c(0,0)) +"
+"0","  ggtitle(""Distribution of female directions"") "

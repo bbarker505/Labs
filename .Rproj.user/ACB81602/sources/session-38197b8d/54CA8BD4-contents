@@ -1,0 +1,19 @@
+phero_pts
+
+start_pts <- phero_pts
+
+phero_pt <- sphero_ptsphero_pt <- slice_tail(phero_pts)
+
+filter(start_pts, x == phero_pt$x &  y == phero_pt$y)
+             
+vineyard <- start_pts
+vineyard$id <- 1:nrow(vineyard)
+moth_pos <- sample_n(vineyard, 1)
+
+cells_x <- c((moth_pos$x - 100):moth_pos$x)
+cells_y <- c((moth_pos$y + 100):moth_pos$y)
+all_cells <- data.frame(x = cells_x, y = cells_y)
+
+                 
+filter(vineyard, id %in% cell_ids)
+

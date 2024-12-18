@@ -1,0 +1,1 @@
+"0","plot(env_data_current$precip, col=rev(grDevices::hcl.colors(20, palette = ""mako"")))"

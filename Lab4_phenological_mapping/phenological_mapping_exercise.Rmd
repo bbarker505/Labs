@@ -1,0 +1,476 @@
+---
+author: "Your name"
+title: "Lab 4: Phenological mapping and model validation"
+date: "`r format(Sys.Date(), tz = 'America/Los_Angeles')`"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(here) # Start in R project directory
+library(dplyr) # Data wrangling
+library(lubridate) # Dates for plots
+library(ggplot2) # Plotting model outputs
+library(ggthemes) # Custom palettes for ggplot2
+library(knitr) # Including graphics
+library(rnpn) # Accessing NPN datasets
+library(caret) # Confusion matrix
+library(sf) # Working with spatial features
+library(terra) # Working with rasters
+library(rnaturalearth) # State features
+```
+
+### **Learning Objectives**
+
+- Produce and interpret spatialized phenology model predictions  
+- Perform and interpret a model validation analysis    
+- Learn some basic GIS operations in R  
+
+### **Grading Rubric**
+
+Most of your grade will be for effort - i.e., that you did your best to follow instructions and to answer questions. Each lab is worth 30 pts, so divide this number by the total number of questions to estimate the approximate number of points per question. Points may be deducted for errors in code, not following instructions, or answering questions incorrectly. 
+
+### **Instructions**
+
+There are a set of questions associated with each exercise below that you must complete either during class or on your own time. Record answers to the questions **within** the Markdown (`.Rmd`) file and record your name on line 2. Once you're done with the lab, knit the R markdown file as a Word document (`.docx`) within RStudio by clicking the `Knit` button found in the toolbar (look for a ball of yarn with a needle sticking out of it) and selecting `Knit to Word`. Ignore any warning messages that pop up in the Console during knitting. Submit the `.Rmd` **and** the `.docx` files on Canvas.
+
+### **Introduction**
+
+#### **(A) The USA National Phenology Network**
+
+The USA National Phenology Network (USA-NPN) collects phenological observation records from volunteer and professional scientists to better understand the impact of changes in the environment on the timing of species' life cycles. The USA-NPN also provides a number of raster-based climatological data sets and phenological models. These in-situ observation and geospatial, modeled datasets are available through a number of tools and data services. For example, the [`rnpn`](https://rdrr.io/cran/rnpn/) package provides an interface to the data and products in the USA-NPN's database. 
+\
+\
+Observational and gridded (raster) data can be visualized or analyzed together for a variety of purposes. In the following exercises, we will visualize and quantify the concordance between model-predicted and observed dates of lilac leaf out, which is a phenophase of lilac in which new leaves appear. A **phenophase** is an observable stage of an animal's or plant's life cycle that can be defined by a start and end point. 
+
+```{r, echo=FALSE, out.width = "650px", fig.align="left", fig.cap="Phenophases for a deciduous tree or shrub. Source: USA National Phenology Network"}
+knitr::include_graphics(here("images", "NPN_phenophase.jpg"))
+```
+
+Next, we will evaluate a phenology model for  [bagworm](https://www.usanpn.org/data/forecasts/Bagworm) (*Thyridopteryx ephemeraeformis*) that predicts the emergence of caterpillars. Bagworm caterpillars defoliate over 50 families of evergreen and deciduous trees and shrubs, primarily arborvitae, juniper, pine, and spruce. If left untreated, these pests are capable of extensive defoliation which can cause branch dieback or death. The bagworm forecasts may help stakeholders time their treatments to target caterpillars when they are small.
+
+#### **(B) GIS in R**
+
+The usage of R in GIS is growing because of its enhanced capabilities for statistics, data visualization, and spatial analytics. In the following exercises, you will be introduced to some GIS operations in R using functions in the [`terra`](https://rspatial.org/pkg/) and [`sf`](https://cran.r-project.org/web/packages/sf/index.html) packages. 
+
+The `terra` package provides functions for working with raster data. A geospatial raster is any pixelated (or gridded) data where each pixel is associated with a specific geographical location. The value of a pixel can be continuous (e.g., elevation) or categorical (e.g., land use). 
+
+```{r, out.width = "650px", echo=FALSE, fig.align="left", fig.cap="Example of a raster. Source: National Ecological Observatory Network"}
+knitr::include_graphics(here("images", "raster_concept.png"))
+```
+
+The `sf` package has functions for storing and working with spatial vector data. A vector uses points and line segments to identify locations on the earth whereas the raster model uses a series of cells to represent locations on the earth. 
+
+```{r, echo=FALSE, out.width = "650px", fig.align="left", fig.cap="Example of a spatial feature created using the sf packages. Source: https://r-spatial.github.io/sf/articles/sf5.html"}
+knitr::include_graphics(here("images", "sf_map.png"))
+```
+
+### **Exercise 1: Geospatial Lilac Leaf Out Model**
+
+The first exercise involves visualizing and quantifying concordance between model-predicted and observed dates of lilac leaf out. Parts of this exercise are based on a [vignette](https://cran.r-project.org/web/packages/rnpn/vignettes/VII_combine_raster_point.html) for the `rnpn` package.
+
+#### **Mapping Forecasts of Lilac Leaf Out**
+
+We obtain raster data for model predictions of lilac leaf out for 2018 using the `npn_download_geospatial()` function in the `rnpn` package. Notice the class, dimensions, spatial resolution, geographic extent, and coordinate reference system of the raster. A coordinate reference system defines how the 2-dimensional, projected map is related to real locations on earth.
+
+```{r}
+# Download lilac model forecasts for 2018
+lilacModel <- rast(npn_download_geospatial(
+  'si-x:lilac_leaf_ncep_historic', 
+  '2018-01-01', 
+))
+lilacModel
+```
+
+For plotting, it's easier to convert the raster data to a data frame. We'll use a pipeline that converts the raster to a data frame (`as.data.frame()` function in the `terra` package), changes the name of the data column (column # 3) to `leaf_out_doy`, converts the day of year to a calendar date using functions in the [`lubridate`](https://lubridate.tidyverse.org/) package, and then creates `12` bins of days to correspond roughly with months of the year. 
+
+```{r}
+# Convert raster data to a data frame and format
+lilacModel_df <- lilacModel %>%
+  as.data.frame(xy = TRUE) %>% # Results in a data frame
+  rename("leaf_out_doy" = 3) 
+
+# Peek at predictions (data frame format)
+head(lilacModel_df)
+```
+
+Notice that the data frame now has data in numerical (class `num`), date (class `Date`), and categorical (class `factor`) formats.
+
+```{r}
+str(lilacModel_df)
+```
+
+Next, `ggplot2` will be used to visualize the predicted week of lilac leaf out for 2018 (i.e., our raster). First, we'll create a data frame for making custom plot labels and a color palette. This data frame will be joined to predictions and observations of lilac leaf out later in the exercise.
+
+```{r}
+# Data frame needed to create pretty plots
+plot_df <- data.frame(
+  # Day and month of year
+  leaf_out_doy = 1:365, leaf_out_month = cut_interval(1:365, 12)) %>%
+  # Bin dates by month and re-format labels to remove brackets, parentheses, etc.
+  mutate(leaf_out_month = format(as.Date(
+    leaf_out_doy, origin = "2018-01-01"), "%b"),
+    leaf_out_month = gsub("\\(|\\]|\\[", "", leaf_out_month)) %>%
+  mutate(leaf_out_month = gsub(",", "-", leaf_out_month))
+
+# Convert month to a factor so they're in the right order on plots
+# Factor levels are ordered by day of the year
+plot_df$leaf_out_month <- factor(plot_df$leaf_out_month, 
+                               levels = unique(plot_df$leaf_out_month[order(plot_df$leaf_out_doy)]))
+
+# Create a vector of labels to show in plot legend
+labs <- unique(plot_df$leaf_out_month)
+
+# Create a color palette (vector) for the plot
+# Classic cyclic palette in "ggthemes" package
+pal <- ggthemes_data[["tableau"]][["color-palettes"]][["regular"]]$`Classic Cyclic`
+pal <- pal$value # Vector of hex codes for colors
+pal <- pal[1:12] # Keep only 12 colors
+names(pal) <- unique(plot_df$leaf_out_month) # Name colors by month
+```
+
+Next, a basic plot is created using our custom labels and palette.
+
+```{r, fig.height = 5, fig.width=9.5}
+# Join month labels to lilac predictions
+lilacModel_df <- left_join(lilacModel_df, plot_df, by = "leaf_out_doy") 
+
+# Create a map using ggplot2
+ggplot() + 
+  geom_raster(data = lilacModel_df, aes(x = x, y = y, fill = leaf_out_month)) +
+  scale_fill_manual(name = "Predicted First\nLeaf Out", label = labs, values = pal) +
+  ggtitle("Month of Predicted First Leaf Out in Lilac in 2018") 
+```
+
+This map looks okay, but it would arguably look better without the default gray background, grid lines, and axes features. If you plan on building multiple plots, it's more concise to define your theme a single time rather than repeating it each time you make a new plot.
+
+```{r}
+# Custom theme
+my_theme <- theme(panel.grid= element_blank(),
+                 panel.background = element_blank(), 
+                 panel.border = element_blank(),
+                 axis.title = element_blank(), 
+                 axis.text = element_blank(),
+                 axis.ticks = element_blank(),
+                 plot.title = element_text(face = "bold", size = 16),
+                 legend.key = element_rect(fill = "white"),
+                 legend.title = element_text(face="bold", size = 12),
+                 legend.text = element_text(size = 11),
+                 legend.key.height = unit(0.0025, "cm"),
+                 legend.key.width = unit(1, "cm"))
+```
+
+Apply the custom theme to the plot.
+
+```{r, fig.height = 5, fig.width=9.5}
+# Create a map using ggplot2
+ggplot() + 
+  geom_raster(data = lilacModel_df, aes(x = x, y = y, fill = leaf_out_month)) +
+  scale_fill_manual(name = "Predicted First\nLeaf Out", label = labs, values = pal) +  
+  ggtitle("Month of Predicted First Leaf Out in Lilac in 2018") +
+  my_theme # Our custom theme
+```
+
+#### **Get State Features and Make Plots**
+
+The map is more informative if we add state boundaries. We'll use an R package called [`rnaturalearth`](https://github.com/ropensci/rnaturalearth) to get these data using the `ne_states()` function. In the pipeline, we obtain the data as an `sf` object and then subset data for the conterminous US (CONUS) using `filter()`. The feature is projected to the same coordinate reference system as the lilac leaf out raster (`lilacModel`) and then converted to a multiline string using the `st_cast()` function.
+
+```{r}
+# Create simple feature ("sf") for US states
+states <- ne_states(returnclass = "sf") %>%
+  filter(geonunit == "United States of America" & !name %in% c("Alaska", "Hawaii")) %>%
+  st_cast("MULTILINESTRING")
+```
+
+Use `geom_sf()` to add an `sf` object to a plot - i.e., the states feature.
+
+```{r, fig.height = 5, fig.width=9.5}
+# Create a map using ggplot2
+ggplot() + 
+  geom_raster(data = lilacModel_df, aes(x = x, y = y, fill = leaf_out_month)) +
+  geom_sf(data = states) +
+  scale_fill_manual(name = "Predicted First\nLeaf Out", label = labs, values = pal) +
+  ggtitle("Month of Predicted First Leaf Out in Lilac in 2018") +
+  my_theme
+```
+
+**(1)** Explain predictions of first leaf out for lilac in the context of degree-day accumulation. For example, where in CONUS were degree-days for lilac accumulating more rapidly and how does this relate to leaf out?
+
+*Response*: 
+
+
+#### **Add Phenometric Data to The Map**
+
+How do model-predicted dates of lilac leaf out compared with observed dates? To answer this question, we import phenometric data for observed lilac leaf out dates for 2018 using the `npn_download_individual_phenometrics()` function in `rnpn`. These data were collected by volunteers and submitted to the USA-NPN's database. The `phenophase_ids` argument is set to `373` to specify that we only want data for leaf out.
+
+```{r}
+# Download phenometric data
+lilacObs <- npn_download_individual_phenometrics(
+  request_source = 'Brittany Barker', 
+  years = '2018',
+  species_ids = '35',
+  phenophase_ids = '373' 
+) 
+```
+
+Take a look at the data dimensions. We see that there are `182` observations (rows) and `25` variables. 
+```{r}
+dim(lilacObs)
+```
+
+There are `77` unique sites in the dataset. Our goal is to add data for each of these sites to the map.
+```{r}
+length(unique(lilacObs$site_id))
+```
+
+We only need data in three columns in the phenometric data: `longitude`, `latitude`, and `first_yes_doy`. The `first_yes_doy` column specifies which day of year that lilacs first had leaf out at the site, but we'll rename it to `leaf_out_doy`. We'll subset the columns using `select()`, change the data column name to be consistent with model predictions, and then join the plotting data to the results.
+
+```{r}
+lilacObs <- lilacObs %>%
+  filter(state != "ON") %>% # Remove an observation from Canada
+  dplyr::select("longitude", "latitude", "first_yes_doy") %>%
+  rename("leaf_out_doy" = "first_yes_doy") %>% 
+  left_join(plot_df, by = "leaf_out_doy") 
+#lilacObs$leaf_out_month <- factor(lilacObs$leaf_out_month, 
+#                               levels = levels(lilacModel_df$leaf_out_month))
+```
+
+Take a look at the first several rows of data.
+
+```{r}
+head(lilacObs)
+```
+
+For plotting purposes, we convert the subsetted phenometric data to a simple feature (`sf`) object using the [`st_as_sf()`](https://www.rdocumentation.org/packages/sf/versions/1.0-9/topics/st_as_sf) function. We tell the function which columns contain coordinate information and specify the `crs` argument as [`4326`](https://epsg.io/4326), which corresponds to the World Geodetic System 1984 coordinate reference system. 
+
+```{r}
+# Convert data frame to a simple feature
+lilacObs_sf <- st_as_sf(lilacObs, coords = c("longitude", "latitude"), crs = 4326)
+lilacObs_sf
+```
+
+Now let's add the phenometric data so we can visualize spatial concordance between model-predicted and observed dates for first leaf out. Sites for each observation are plotted using their coordinate information and colored according to values in the `leaf_out_week` column. The map is saved to the "maps" folder for this lab.
+
+```{r, fig.height = 5, fig.width=9.5}
+# Add sites to the map
+conus_map <- ggplot() + 
+  geom_raster(data = lilacModel_df, aes(x = x, y = y, fill = leaf_out_month)) +
+  geom_sf(data = states) +
+  geom_sf(data = lilacObs_sf, aes(color = leaf_out_month), size = 3, show.legend = FALSE) +
+  geom_sf(data = lilacObs_sf, color = "black", size = 3, shape = 1) + # black outlines around sites
+  scale_fill_manual(name = "Month of First\nLeaf Out", label = labs, values = pal, drop = FALSE) +
+  #scale_color_manual(name = "Month of First\nLeaf Out", label = labs, values = pal, drop = FALSE) +
+  ggtitle("Predicted vs. Observed 1st Leaf Out in Lilac in 2018") +
+  my_theme
+conus_map
+
+# Save the plot
+ggsave(conus_map, filename = here("maps", "Lilac_leaf_out_2018.png"), 
+       dpi = 150, units = c('in'), width = 10, height = 6)
+```
+
+
+**(2)** Overall, how concordant were observed dates of first lilac leaf out with predicted dates? Comment on whether you seen a tendency of model over- or under-prediction.
+
+*Response*: 
+
+
+**(3)** Where do you see strong misalignments in observed vs. predicted dates? Do you think these are misalignments due to model error or observer error? Why or why not? 
+
+*Response*: 
+
+
+#### **Validating Forecasts of Lilac Leaf Out**
+
+Next, we will extract model predictions from each site and conduct a validation analysis to evaluate model performance. The first step is to create a data frame with coordinate data for the lilac leaf out observations. Next, predictions in the `lilacModel` raster are extracted using the [`extract()`](https://rdrr.io/cran/terra/man/extract.html) function in `terra`. The output is convert to a data frame and the column with predictions is renamed. Finally, we attach the results back to the lilac observation data so we have observed and predicted dates in the same data frame.
+
+```{r}
+# Extract model predictions and convert results to a data frame
+model_extract <- terra::extract(lilacModel, lilacObs_sf, xy = TRUE) %>%
+  as.data.frame() %>%
+  dplyr::select("predicted_doy" = 2)
+
+# Add results back to lilac observation data
+lilacObs2 <- bind_cols(lilacObs, model_extract) 
+head(lilacObs2)
+```
+
+An [equivalence test](https://pubmed.ncbi.nlm.nih.gov/15870057/) is one potential option for evluating predictive performance of ecological models. Here, a two one-sided (TOST) test for equivalence is used to evaluate whether predicted and observed dates (day of year) for lilac leaf out are statistically equivalent. This uses the `tost()` function in the [`equivalence`](https://cran.r-project.org/web/packages/equivalence/equivalence.pdf) R package. Statistical equivalence can be demonstrated if the two one-sided 95% confidence intervals (CIs) are completely contained within a specified equivalence interval for the difference in means (δ). We'll define the equivalence interval as seven days (−7 < δ < 7). 
+
+```{r}
+# Conduct a 2 one-sided TOST test (equivalence interval = 7 days)
+tost_7d <- equivalence::tost(lilacObs2$predicted_doy, lilacObs2$leaf_out_doy, epsilon = 7, conf.level = 0.95)
+tost_7d
+```
+
+We can also visualize the results of the test using `ggplot` after putting them into a data frame.
+
+```{r}
+# Create a data frame of TOST test results
+tost_7d_df <- data.frame(
+  event = as.factor("First leafout"), 
+  days = 7,
+  lower_ci = tost_7d$tost.interval[1],
+  upper_ci = tost_7d$tost.interval[2],
+  p_val = round(tost_7d$tost.p.value, 2),
+  mean_diff = tost_7d$estimate[1] - tost_7d$estimate[2])
+```
+
+Plot the TOST test results.
+
+```{r}
+ggplot(tost_7d_df) +
+  # Vertical lines: 0 days vs. 7 days
+  geom_vline(xintercept = 0, color = "black", size = 0.6) +
+  geom_vline(xintercept = c(-7, 7), linetype = "dotted", color = "red", size = 0.6) +
+  # TOST 95% confidence interval
+  geom_errorbarh(aes(xmin = lower_ci, xmax = upper_ci, y = event), 
+                 height = .25, linewidth = 0.6) +
+  # Point for mean difference
+  geom_point(aes(x = mean_diff, y = event), size = 2.5) +
+  scale_x_continuous(limits = c(-25,25), breaks = seq(-25, 25, 5)) +
+  xlab("Mean difference (days)") + 
+  ylab("") +
+  theme_bw()
+```
+
+**(4)** The 95% CIs for the difference between the means of predicted and observed dates (in days) for first lilac leaf out exceeded the lower equivalence bound of seven days. Describe what these results say about model under- vs. over-prediction. What would you say to someone who expects your predictions to be accurate to within 1 week? 
+
+*Response*: 
+
+
+### **Exercise 2: Model Forecast Validation for Bagworm**
+
+Here we will use the confusion matrix approach to evaluate forecasts of the emergence of bagworm caterpillars produced by the USA-NPN. The USA-NPN's degree-day (DD) model for bagworm (click on "Source" in the [model forecast website](https://www.usanpn.org/data/forecasts/Bagworm) uses a lower developmental threshold of 50F (10C), a start date of March 1, and the simple average method to calculate DDs.
+
+#### **Preparing the Phenometric Data**
+
+Download bagworm phenometric data for 2022 and then subset data using `filter()` to include only observations of caterpillars collected on or later than March 1. The date filter is applied because USA-NPN's DD model for bagworm uses a start date of March 1, so we can't compare observation data to predictions that don't exist. The result is a data frame containing `2448` caterpillar observations and their associated geographic information.
+
+```{r}
+# Bagworm data (filtered)
+bagworm_df <- npn_download_status_data(
+  request_source = 'Brittany Barker', 
+  years=c(2022), 
+  species_ids = c(1794)
+  ) %>%
+  filter(phenophase_description == "Caterpillars" & observation_date >= "2022-03-01")
+head(bagworm_df)
+```
+
+
+#### **Download Model Predictions**
+
+Next we will download DD model predictions for each location in the phenometric dataset (i.e., `bagworm_df`). 
+
+An empty data frame is created to store the results of a `for` loop that iterates over each row in the `bagworm_df` data frame and downloads the model predictions for that location. For each location, the model is run using a start date of March 1 and stops on the day when caterpillars were first observed. The last row of data is subsetted using `slice(n())` because we only want to know total DD accumulation on the observation date. 
+
+WARNING: This loop takes **several** minutes to finish!
+
+```{r, message = FALSE, progress = FALSE, results=FALSE}
+# Empty data frame to store DD accumulation (agdd) results
+dd_accum_allLocs <- data.frame()
+
+# Iterate over each row (observation) in the data frame
+for (i in 1:nrow(bagworm_df)) {
+  
+  print(i)
+  
+  # Get model predictions from USA-NPN
+  dd_i <- npn_get_custom_agdd_time_series(
+    method = "simple", # simple average method for DD calculations
+    start_date = "2022-03-01", # date to begin DD calculations
+    end_date = bagworm_df$observation_date[i], # do to end DD calculations
+    base_temp = 50, # lower developmental threshold
+    climate_data_source = "NCEP", # climate data source
+    temp_unit = "fahrenheit", # unit of temp (F vs. C)
+    lat = bagworm_df$latitude[i], # latitude of location
+    long = bagworm_df$longitude[i], # longitude of location
+    upper_threshold = NULL) # upper threshold not used in simple average method
+  
+  # How many DDs had accumulated by the obs. date?
+  dd_accum <- dd_i %>%
+    slice(n()) %>% # Subset last row
+    dplyr::select("dd_accum" = agdd) # Only need agdd data (DD accumulation)
+  
+  # Attach results to data frame for all results
+  dd_accum_allLocs <- bind_rows(dd_accum_allLocs, dd_accum)
+}
+```
+
+Add the DD accumulation data as a new column to the bagworm observation data using `bind_cols()`.
+
+```{r}
+# Create `dd_accum` column
+bagworm_df2 <- bind_cols(bagworm_df, dd_accum_allLocs)
+```
+
+We'll make a second subset of bagworm observation data that includes data only for dates before March 1 and assign them a DD accumulation value of `0` (`dd_accum` = `0`) because we're assuming that no DDs accumulate before the model start date (i.e., March 1).
+
+```{r}
+# Get records documented prior to 3-1 and append to results
+bagworm_df3 <- bagworm_df %>%
+  filter(observation_date < "2022-03-01") %>%
+  mutate(dd_accum = 0) %>% # assume that no DDs have accumulated
+  bind_rows(bagworm_df2) 
+```
+
+We create a new column called `predicted_cat` that uses a conditional statement to determine whether bagworms are in the caterpillar phenophase (`600` < DDs < `900`) according the DD model. A value of `0` for a location means that bagworm is predicted to be in a different phenophase (e.g., an adult moth if DDs > `900`). The `phenophase_status` column name is changed to `observed_cat` for clarity. Both columns are changed to type 'factor' (categorical data) because the confusion matrix analysis requires factors as inputs.
+
+```{r}
+# Add column with forecast prediction based on DD accumulation on day of observation
+bagworm_df3 <- bagworm_df3 %>%
+  mutate(predicted_cat = factor(ifelse(dd_accum < 600, 0, 
+                             ifelse(dd_accum > 900, 0, 1)), levels = c("0", "1")),
+         observed_cat = factor(phenophase_status, levels = c("0", "1")))
+
+# Compare first several rows of observed vs. predicted phenophase status
+head(dplyr::select(bagworm_df3, site_id, observed_cat, predicted_cat))
+```
+
+#### **Calculate a Confusion Matrix**
+
+Finally, we will statistically compare observed vs. model-predicted phenophase (`0` = not caterpillars, `1` = caterpillars) using a confusion matrix. A [confusion matrix](https://www.dataschool.io/simple-guide-to-confusion-matrix-terminology/) is a special kind of contingency table with two dimensions ("actual" and "predicted"), and identical sets of "classes" in both dimensions. Each combination of dimension and class is a variable in the contingency table.
+\
+\
+```{r, echo=FALSE, out.width = "500px", fig.align="left", fig.cap="Source: https://plat.ai/blog/confusion-matrix-in-machine-learning/"}
+knitr::include_graphics(here("images", "confusion_matrix.png"))
+```
+
+The confusion matrix approach allows you to evaluate overall predictive performance as well as whether the model over- or under-predicts the caterpillar phenophase. We're not too concerned if the model predicts caterpillars are present before they are documented in the field (e.g., maybe there were only a few caterpillars present so they weren't immediately noticed by observers). Model over-prediction, wherein caterpillars are predicted later than they are observed in the field, is more problematic because decision-makers may miss the best opportunity to treat populations. 
+
+The confusion matrix for bagworm is computed using the `confusionMatrix()` function of the [`caret`](https://topepo.github.io/caret/) package, where the inputs are observed vs. predicted caterpillars.
+
+```{r}
+# Column type must be factor for confusion matrix calculation
+confusionMatrix(bagworm_df3$predicted_cat, bagworm_df3$observed_cat)
+```
+
+**(5)** Interpret the confusion matrix results, paying attention to what they say about potential model under- or over-prediction. 
+
+*Response*: 
+
+
+**(6)** Which values in the matrix represent the omission vs. commission errors? What are the consequences (if any) of these errors for bagworm management? 
+
+*Response*: 
+
+
+**(7)** In the code chunk below, create a plot that depicts the locations where bagworm caterpillar observations were collected. To do this, you'll need to convert the `bagworm_df3` data frame to an `sf` object (use `4326` for the "crs" argument) and then use `geom_sf` in the `ggplot` function to plot the locations. Copy and paste `ggplot` code from Exercise 1 to make things easier. You can give your plot an informative title.
+
+
+**(8)** According to your map, how many locations were the bagworm caterpillar observations derived from and where are they located? 
+
+*Response*: 
+
+
+**(9)** Do the number and spatial distribution of the locations affect your confidence in results of the confusion matrix (i.e., how much we can rely on the results as a form of model validation)? Why or why not?
+
+*Response*: 
+
+
+**(10)** Discuss your overall results from this lab exercise, particularly regarding the importance of evaluating model performance using ground-based data.
+
+*Response*: 

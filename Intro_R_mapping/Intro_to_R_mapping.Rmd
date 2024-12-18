@@ -1,0 +1,451 @@
+---
+title: "Introduction to GIS and mapping in R"
+subtitle: "Ecological Systems Modeling </center> Jan 29-Feb 2, 2024"
+format: revealjs
+---
+
+---
+format: 
+ revealjs:
+  slide-number: c/t
+  width: 1600
+  height: 900
+  theme: [simple, custom.css]
+  echo: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(here) # Start in R project directory
+library(dplyr) # Data wrangling
+library(sf) # Spatial features
+library(terra) # Rasters
+library(ggplot2) # Plotting
+```
+
+### Learning objectives
+
+- Differentiate between vectors and rasters  
+- Describe basic components of a geographical coordinate system  
+- Import and work with spatial data using `sf` and `terra`  
+- Create maps using `ggplot2`   
+
+## Elements of Geographic Information System (GIS)
+
+```{r, out.width = "650px", echo=FALSE, fig.align="center", fig.cap="Source: Mierzejowska & Pomyko 2019"}
+knitr::include_graphics(here("Intro_R_mapping","images", "GIS.png"))
+```
+
+## Why use R for GIS?
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+**Advantages**  
+- It's *FREE*!!!   
+- Automate and repeat tasks  
+- Easier to make reproducible workflow  
+- Extend functionality  
+- Faster than pointing/clicking  
+
+```{r, out.width = "650px", echo=FALSE, fig.align="left", fig.cap="Source: Aleks Buczkowski 2023"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "Why-is-ArcGIS-So-Expensive.png"))
+```
+
+:::
+
+::: {.column width="50%"}
+
+**Disadvantages**  
+- Sometimes a steep learning curve   
+- Sometimes harder for quick exploratory analysis   
+
+```{r, out.width = "400px", echo=FALSE, fig.align="left"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "programmer_meme.jpg"))
+```
+
+:::
+
+::::
+
+## Types of spatial features: vector
+
+- Uses points and/or line segments to identify locations on earth 
+- Common storage format is an ESRI shapefile  
+
+```{r, out.width = "650px", echo=FALSE, fig.align="center", fig.cap="Different types of vectors (source: Jakub Nowosad)"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "vector.png"))
+```
+
+## Types of spatial features: raster
+
+- Gridded data where each pixel (cell) is associated with a specific geographical location 
+- Can be numerical or categorical 
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r, out.width = "650px", echo=FALSE, fig.align="left"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "forest_cover.jpg"))
+```
+:::
+
+::: {.column width="50%"}
+
+```{r, echo = FALSE, out.width = "700px", fig.cap="Source: Jakub Nowosad"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "cont_vs_cat.png"))
+```
+:::
+
+::::
+
+## Vector vs. raster
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+Multi-polygon: provinces of Spain
+
+```{r, out.width = "1000px", echo=FALSE, fig.cap="Source: Paula Moraga"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "pol_v_rast1.png"))
+```
+:::
+
+::: {.column width="50%"}
+
+Raster: average annual temperature in Spain
+ 
+```{r, echo = FALSE, out.width = "1000px"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "pol_v_rast2.png"))
+```
+:::
+
+::::
+
+## Coordinate reference system (CRS)
+
+Defines the translation between:  
+- a location on round earth and  
+- that same location on a flattened, 2D coordinate system   
+
+```{r, echo = FALSE, out.width = "1000px", fig.cap = "Source: http://ayresriverblog.com"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "geographic-origin.png"))
+```
+
+##  Components of a CRS
+
+- Coordinate system: X, Y grid upon which data is overlaid  
+- Units: horizontal & vertical units of grid (e.g., km, miles)  
+
+```{r, echo = FALSE, out.width = "700px", fig.cap = "Source: http://ayresriverblog.com"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "geographic-origin.png"))
+```
+
+## Components of a CRS
+
+- Coordinate system: X, Y grid upon which data is overlaid  
+- Units: horizontal & vertical units of grid (e.g., km, miles)  
+- Datum: defines origin used to place the coordinate system in space  
+  - features in real world must be **georeferenced** to a spheroid  
+  
+```{r, echo = FALSE, out.width = "700px", fig.cap = "Source: Bill Huber, https://www.directionsmag.com/article/4048"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "datum_v_proj.gif"))
+```  
+
+## Components of a CRS
+
+- Coordinate system: X, Y grid upon which data is overlaid  
+- Units: horizontal & vertical units of grid (e.g., km, miles)  
+- Datum: defines origin used to place the coordinate system in space  
+- Projection: equation used to flatten objects to 2D surface  
+
+```{r, echo = FALSE, out.width = "700px", fig.cap = "Source: Bill Huber, https://www.directionsmag.com/article/4048"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "datum_v_proj.gif"))
+```  
+
+## Example map projections
+
+```{r, echo = FALSE, out.width = "1000px", fig.cap = "Planar (left), conic (middle), and cylindrical (right) projections. Source: https://gistbok.ucgis.org/bok-topics/map-projections"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "figure2-projections.png"))
+```
+
+## `sf`: R package for working with vector features
+
+:::: {.columns}
+
+::: {.column width="35%"}
+
+- `sf` = simple features   
+- Integration with the tidyverse 
+- Emphasis on the spatial geometry of real world objects  
+
+```{r, echo = FALSE, out.width = "200px", fig.align="center-aligned"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "sf_logo.png"))
+```
+
+:::
+
+::: {.column width="65%"}
+
+```{r, echo = FALSE, out.width = "1000px", fig.cap="Source: Paula Moraga"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "sf_objects.png"))
+```
+
+:::
+
+::::
+
+## Some functions in `sf`
+
+```{r, echo = FALSE, out.width = "1000px", fig.align="center-aligned"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "sf_concept_map.png"))
+```
+
+## Example: Plant hardiness zone map (2023)
+
+- Import the shapefile using `st_read()`  
+- Notice geometry type, dimension and bounding box info   
+- Multi-polygon is a type of vector data  
+
+```{r}
+# Import shapefile 
+ph_zones <- st_read(here("Intro_R_mapping", "data", "ph_zones_PRISM_PNW.shp"))
+```
+
+## Multi-polygon class and data type
+
+- Data class is `sf` and `data.frame`  
+- Specific data type is `list` because it contains two objects  
+
+```{r}
+# What class is sf object?
+class(ph_zones)
+
+# What type of data?
+typeof(ph_zones)
+```
+
+## Data in the plant hardiness zone feature
+
+- Data frame columns include  
+  - Unique identifier (`Id`) 
+  - Zone data (`gridcode`, `zone`, `trange`, `zonetitle`)  
+  - XY data in `geometry` 
+
+```{r}
+# Peek at the data
+head(ph_zones)
+```
+
+## Coordinate reference system (CRS)
+
+- `st_crs()` returns CRS information  
+
+```{r}
+# Get CRS
+st_crs(ph_zones)
+```
+
+## Plot plant hardiness zones using `ggplot2`
+
+- `geom_sf()` is used for plotting `sf` objects  
+- For example, polygons are filled using `zone` data  
+
+```{r}
+# Simple plot of plant hardiness zones
+phz_plot <- ggplot() + 
+  geom_sf(data = ph_zones, aes(fill = zone)) +
+  ggtitle("2023 Plant Hardiness Zones (PRISM group)") +
+  theme_bw()
+phz_plot
+```
+
+## Using other tidyverse functions on `sf` objects
+
+- Tidyverse functions will work on `sf` objects  
+- For example, use `dplyr` to filter data for zones 8b, 9a, and 9b  
+
+```{r}
+# Subset of zones (8b, 9a, 9b)
+ph_zones_sub <- ph_zones %>%
+  filter(zone %in% c("8b", "9a", "9b"))
+
+# Plot result
+phz_sub_plot <- ggplot() + 
+  geom_sf(data = ph_zones_sub, aes(fill = zone)) +
+  ggtitle("Plant Hardiness Zones 8b-9b") +
+  theme_bw() 
+```
+
+## Using other tidyverse functions on `sf` objects
+
+::: {.columns}
+
+::: {.column width="50%"}
+
+Before filtering
+
+```{r, echo=FALSE}
+phz_plot 
+```
+
+:::
+
+::: {.column width="50%"}
+
+After filtering
+
+```{r, echo=FALSE}
+phz_sub_plot 
+```
+
+:::
+
+::::
+
+## `terra`: R package for working with rasters
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+- Functions for creating, reading, manipulating, and writing raster data  
+- Can work with single rasters and with raster "stacks" (multiple bands)
+
+```{r, echo = FALSE, out.width = "200px", fig.align="center"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "logo.png"))
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{r, out.width = "700px", echo=FALSE, fig.align="left", fig.cap="Source: Robert Hijmans"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "raster_bands.png"))
+```
+
+:::
+
+::::
+
+## Example: Tmin raster data
+
+- Import raster data for min temp (Tmin) on Dec. 31 (avg. for 1961-1990)    
+- `rast()` function in `terra` 
+
+```{r}
+tmin <- rast(here("Intro_R_mapping", "data", "PRISM_tmin_30yr6190_4kmM2_19751231.bil"))
+```
+
+## Example: Tmin raster data
+
+- Raster info includes dimensions, resolution, extent, and CRS    
+- Data class is "SpatRaster"  
+
+```{r}
+# View raster
+tmin
+
+# What class?
+class(tmin)
+```
+
+## Plotting raster data
+
+- One approach is to convert raster to data frame first     
+- Use `as.data.frame()` in `terra` and keep XY values for plotting    
+<br/>
+
+```{r}
+# Convert raster to data frame, keep xy values
+tmin_df <- as.data.frame(tmin, xy = TRUE) %>%
+  rename("Tmin" = 3)
+
+# Peek at the results
+head(tmin_df)
+```
+
+## Plotting raster data
+
+- Next, plot data using `geom_raster()` or `geom_tile()` in `ggplot2`  
+- XY values used for `x` and `y` in `aes()` (aesthetics) options  
+- `Tmin` values used for `fill` 
+- Can customize color palette using various functions  
+
+```{r}
+# Plot using "geom_raster"
+# Use "turbo" palette for fill color
+tmin_p <- ggplot() +
+  geom_raster(data = tmin_df, aes(x = x, y = y, fill = Tmin)) +
+  scale_fill_viridis_c(option = "H", name = "Tmin (C)") +
+  ggtitle("Min Temperature on Dec. 31 (1961-1990) in CONUS") +
+  theme_bw()
+```
+
+## Plotting raster data
+
+```{r, echo=FALSE}
+# Plot using "geom_raster"
+tmin_p 
+```
+
+## Mapping with multiple layers
+
+- Oftentimes we want to make maps with multiple spatial features 
+
+```{r, out.width = "650px", echo=FALSE, fig.align="center"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "layering.png"))
+```
+
+## Example: add state boundaries to Tmin map
+
+- Geospatial analyses require data to have same projection  
+- Functions available in `sf` to project features  
+
+```{r}
+# Import state boundary shapefile
+# Data have NAD83 projection
+states <- st_read(here("Intro_R_mapping", "data", "USA_lower48_NAD83.shp"))
+```
+## Example: add state boundaries to Tmin map
+
+- For plotting, need to set fill to NA to just show lines  
+
+```{r}
+# Add multi-polygon to plot
+tmin_p2 <- tmin_p +
+  geom_sf(data = states, fill = NA)
+```
+
+## Plot with raster (Tmin) and multi-polygon (states) data
+
+```{r, echo=FALSE}
+# Plot using "geom_raster"
+tmin_p2
+```
+
+## Example 2: plot combining raster and vectors
+
+- Map of the phenology and potential distribution for invasive emerald ash borer  
+- What are the vectors vs. rasters in this map? 
+
+:::: {.columns}
+
+::: {.column width="75%"}
+
+```{r, echo = FALSE, out.width = "1500px", fig.cap="center-aligned"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "EAB_map.png"))
+```
+
+:::
+
+::: {.column width="25%"}
+
+```{r, echo = FALSE, out.width = "250px", fig.cap="Source: Barker et al. (2023) *Frontiers in Insect Science*"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "emerald-ash-borer-on-leaf.png"))
+```
+:::
+
+::::

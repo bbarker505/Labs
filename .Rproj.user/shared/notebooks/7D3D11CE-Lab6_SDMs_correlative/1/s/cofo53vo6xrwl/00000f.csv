@@ -1,0 +1,5 @@
+"0","# Generalized linear model (logistic regression)"
+"0","log_regr_model <- glm("
+"0","  present ~ tmin + precip,"
+"0","  family = binomial(link = ""logit""),"
+"0","  data = hooded_warb_data)"

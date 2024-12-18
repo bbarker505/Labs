@@ -1,0 +1,18 @@
+"0","knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)"
+"0","library(here)"
+"0","library(raster) # working with rasters"
+"2","Loading required package: sp
+"
+"2","
+Attaching package: ‘raster’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    select
+
+"
+"0","library(ggplot2) # plotting"
+"0","library(ggthemes) # extra plot themes"
+"0","library(dplyr) # data wrangling"
+"0","library(stringr) # working with strings"

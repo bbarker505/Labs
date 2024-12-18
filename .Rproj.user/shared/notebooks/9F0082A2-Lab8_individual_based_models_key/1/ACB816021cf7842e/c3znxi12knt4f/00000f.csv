@@ -1,0 +1,5 @@
+"0","# Distribution of flight directions for male moths"
+"0","directions_m <- data.frame("
+"0","    direction = round(rtnorm(1000, mean = ri_prev, sd = 40, lower = -180, upper = 180), 0))"
+"2","Error: object 'ri_prev' not found
+"

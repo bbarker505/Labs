@@ -1,0 +1,34 @@
+"0","knitr::opts_chunk$set(echo = TRUE)"
+"0","library(here)"
+"0","library(dplyr) # Data wrangling"
+"0","library(tidyr) # Reformatting model outputs for plotting"
+"2","
+Attaching package: ‘tidyr’
+
+"
+"2","The following object is masked from ‘package:raster’:
+
+    extract
+
+"
+"2","The following object is masked from ‘package:terra’:
+
+    extract
+
+"
+"0","library(ggplot2) # Plotting model outputs"
+"0","library(patchwork) # Arrange multiple plots on 1 page"
+"2","
+Attaching package: ‘patchwork’
+
+"
+"2","The following object is masked from ‘package:raster’:
+
+    area
+
+"
+"2","The following object is masked from ‘package:terra’:
+
+    area
+
+"

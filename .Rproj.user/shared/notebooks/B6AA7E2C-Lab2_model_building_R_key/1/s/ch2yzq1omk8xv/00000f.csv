@@ -1,0 +1,2 @@
+"0","# Path of weather data file"
+"0","weath_fl <- here(""Lab2_model_building_R"", ""weather_data"", ""CRVO21.txt"")"

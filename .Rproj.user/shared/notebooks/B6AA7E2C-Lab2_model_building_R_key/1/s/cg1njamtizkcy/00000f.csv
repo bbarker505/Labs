@@ -1,0 +1,2 @@
+"0","# How many rows in the data frame?"
+"0","number_of_days <- nrow(weath_data)"

@@ -1,0 +1,114 @@
+---
+title: '**Using R and RStudio Locally**'
+subtitle: '**Ecological Systems Modeling (Winter 2024)**'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+<style type="text/css">
+body{ /* Normal  */
+      font-size: 14px;
+  }
+p {line-height: 1.5em;}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+```
+
+## This procedure is **OPTIONAL**
+
+You can complete all lab assignments on Jupyter Hub. Thus, there's no need to follow steps in this document unless you really want to work on a local installation of R and RStudio (e.g., if you have a spotty internet connection and therefore have issues with connecting to Jupyter Hub). Be warned that using a local machine will be more laborious because you'll have to download and re-upload documents, and also potentially deal with issues related to your own installations of R and RStudio. 
+
+## NOTE: Keep the same folder structure and names
+
+Make sure that you follow the exact same folder structure used on Jupyter Hub. In other words, a `Labs` folder that contains an R project called `Labs.proj` is required. Don't change the names of any of the folders or files associated with assignments. 
+
+# Steps
+
+## 1. Download R and RStudio
+
+Go to `https://posit.co/download/rstudio-desktop` and follow the instructions. 
+
+## 2. Download required R packages
+
+The R packages needed for each assignment will be at the top of the R Markdown file. Install the package using the `install_packages()` function in R. For example:
+
+```{r, eval = FALSE}
+# To install the "here" package
+install.packages("here")
+```
+
+## 3. Download folders with lab assignments/tutorials
+
+### 3a. **Method 1: RStudio**
+
+**This method is recommended** (it's easier than Method 2, below). 
+
+1. On Jupyter Hub, log in to RStudio. 
+
+2. Click on the check boxes of the folders or files that you want to download in the Files/Plots/etc. pane (bottom-right).  
+
+3. Click on on the blue gear in the top left corner of the Files/Plots/etc. pane.  
+
+4. Click `Export`. 
+
+```{r, echo = FALSE, out.width= "500px"}
+knitr::include_graphics(here("Tutorials", "Guidance_docs", "images", "RStudio_export_1.png"))
+```
+
+5. Save the zipped contents to your computer.
+
+```{r, echo = FALSE, out.width= "500px"}
+knitr::include_graphics(here("Tutorials", "Guidance_docs", "images", "RStudio_export_2.png"))
+```
+
+6. Upload completed documents.
+
+When you're done with your assignment, upload your completed documents using the upload button in the Files/Plots/etc. pane (see red box in below screenshot). 
+
+```{r, echo = FALSE, out.width= "500px"}
+knitr::include_graphics(here("Tutorials", "Guidance_docs", "images", "RStudio_upload_1.png"))
+```
+
+You'll have to upload a zipped file if you want to upload multiple files at a single time. RStudio will automatically unzip them. Here I have selected a zip file named `some_files.zip`. 
+
+```{r, echo = FALSE, out.width= "500px"}
+knitr::include_graphics(here("Tutorials", "Guidance_docs", "images", "RStudio_upload_2.png"))
+```
+
+### 3b. **Method 2: Jupyter Hub**  
+
+This method is not recommended unless you are somewhat familiar with the Terminal and command line arguments such as `zip`, `unzip` and `mv`.
+
+1. There doesn't appear to be an easy way to download multiple files at once in Jupyter Hub, unless you created a zipped file using the Terminal. To download an individual file, click on the file and then `Download`.
+
+```{r, echo = FALSE, out.width= "500px"}
+knitr::include_graphics(here("Tutorials", "Guidance_docs", "images", "JH_download_1.png"))
+```
+
+2. Upload your completed assignment and any other associated files using the upload button (upward facing arrow) in the upper-left corner of Jupyter Hub (see red box in screenshot below).
+
+```{r, echo = FALSE, out.width= "500px"}
+knitr::include_graphics(here("Tutorials", "Guidance_docs", "images", "JH_upload_1.png"))
+```
+
+As with RStudio, you can only upload a single file at a time, so you'll need to upload a zipped file if you want to upload multiple files at a single time. Below shows an upload of `some_files.zip` to the `Labs` folder in my home directory. 
+
+```{r, echo = FALSE, out.width= "500px"}
+knitr::include_graphics(here("Tutorials", "Guidance_docs", "images", "JH_upload_2.png"))
+```
+
+3. In the `Launcher` tab, scroll down to the `Other` section and click on `Terminal`.
+
+```{r, echo = FALSE, out.width= "500px"}
+knitr::include_graphics(here("Tutorials", "Guidance_docs", "images", "JH_upload_3.png"))
+```
+
+4. In the Terminal, type `unzip filename` (replace "filename" with the real file name). If you uploaded the file to wrong directory, you can use `mv` to put files in the right place (e.g., `mv filename ~/Labs/`). 
+
+```{r, echo = FALSE, out.width= "500px"}
+knitr::include_graphics(here("Tutorials", "Guidance_docs", "images", "JH_upload_4.png"))
+```
