@@ -108,21 +108,25 @@ This is code in text
 
 # Header 1
 
-Header 1
+Header 1 (larger font)
+
 ## Header 2
 
-Header 2
+Header 2 (smaller font than Header 1)
+
 Note that when a # symbol is placed inside a code chunk it acts as a normal R comment, but when placed in text it controls the header size.
 
 * Unordered list item
 
 Unordered list item
+
 1. Ordered list item
 
 Ordered list item
+
 [Link](https://www.google.com)
 
-Link
+Web link
 
 $A = \pi \times r^{2}$
 

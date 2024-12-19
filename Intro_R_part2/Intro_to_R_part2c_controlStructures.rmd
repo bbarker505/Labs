@@ -1,6 +1,6 @@
 ---
 title: "R programming basics: control structures"
-subtitle: "Ecological Systems Modeling </center> Jan 15-19, 2024"
+subtitle: "Ecological Systems Modeling </center> Jan 13-17, 2025"
 format: revealjs
 ---
 
@@ -87,7 +87,7 @@ knitr::include_graphics(here("Intro_R_part2", "images", "if_statement.png"))
 - `if else`: corresponding and alternative `else` instruction
   - If the traffic light is green: Drive  
   - Else: Don’t drive  
-- Different code blocks run when `TRUE` vs.` FALSE`  
+- Different code blocks run when `TRUE` vs. `FALSE`  
 
 :::
 

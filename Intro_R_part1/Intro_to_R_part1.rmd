@@ -1,6 +1,6 @@
 ---
 title: "Introduction to R and RStudio"
-subtitle: "Ecological Systems Modeling </center> Jan 8-10, 2024"
+subtitle: "Ecological Systems Modeling </center> Jan 6-10, 2025"
 #author: "Brittany Barker"
 #date: "`r format(as.Date('1/8/24', '%m/%d/%y'), '%B %d, %Y')`"
 format: revealjs
@@ -35,7 +35,7 @@ knitr::include_graphics(here("Intro_R_part1", "images", "intro_me.jpg"))
 
 ::: {.column width="60%"}
 **Current position**  
-- Snr. Research Associate, Oregon IPM Center & Hort.  
+- Asst. Res. Professor, Oregon IPM Center & Hort.  
 <br/>
 **Research interests**  
 - Modeling, ecology, biogeography, conservation, biological invasions, and genetics  
@@ -198,17 +198,11 @@ knitr::include_graphics(here("Intro_R_part1", "images", "twitter_purrr.png"))
 
 ::::
 
-## Check out upcoming PDX R User Group events
-
-```{r, echo = FALSE, out.width = "600px", fig.align="center"}
-knitr::include_graphics(here("Intro_R_part1", "images", "PDX_R_UserGroup2.png"))
-```
-
-## Cascadia R Conf 2024
+## Cascadia R Conf 2025
 
 - Conference that brings together professionals and students who use R  
 - Various fields represented: life sciences, medicine, stats, teaching, etc.    
-- Next conference will be in Seattle in June 2024 (date TBD)   
+- Next conference will be in Portland on June 21-22, 2025    
 - Stay tuned at: `https://cascadiarconf.com/`  
 
 ```{r, echo = FALSE, out.width = "700px"}
@@ -271,12 +265,12 @@ knitr::include_graphics(here("Intro_R_part1", "images", "R_vRStudio.png"))
 
 ## We will use RStudio on Jupyter Hub at [OSU](https://uit.oregonstate.edu/tsa/data-science) 
 
-- Everyone log on to `HORT499X` in Canvas  
+- Everyone log on to `HORT599` in Canvas  
 
 ## We will use RStudio on Jupyter Hub at [OSU](https://uit.oregonstate.edu/tsa/data-science) 
 
 - Navigate to (`Modules` -> `Jupyter Hub`)  
-- Click on `Hub-HORT-499X`    
+- Click on `Hub-HORT-599`    
 
 ```{r, echo = FALSE, fig.align = "left"}
 knitr::include_graphics(here("Intro_R_part1", "images", "JH_Canvas.png"))
@@ -285,8 +279,8 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_Canvas.png"))
 ## We will use RStudio on Jupyter Hub at [OSU](https://uit.oregonstate.edu/tsa/data-science) 
 
 - Navigate to (`Modules` -> `Jupyter Hub`)  
-- Click on `Hub-HORT-499X`  
-- Click on `Load Hub-HORT-499X in a new window`     
+- Click on `Hub-HORT-599`  
+- Click on `Load Hub-HORT-599 in a new window`     
 
 ```{r, echo = FALSE, fig.align = "left"}
 knitr::include_graphics(here("Intro_R_part1", "images", "JH_Canvas2.png"))

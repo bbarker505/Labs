@@ -1,6 +1,6 @@
 ---
 title: "R programming basics: objects, classes, and operators"
-subtitle: "Ecological Systems Modeling </center> Jan 15-19, 2024"
+subtitle: "Ecological Systems Modeling </center> Jan 13-17, 2025"
 format: revealjs
 ---
 
@@ -695,7 +695,7 @@ x %% 5
 - Returns either `FALSE` (`0`) or `TRUE` (`1`)  
 
 ```{r, echo = FALSE, out.width= "1000px", fig.align="left"}
-knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operatorspng"))
+knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operators.png"))
 ```
 
 :::
@@ -722,7 +722,7 @@ x < 10
 - Returns either `FALSE` (`0`) or `TRUE` (`1`)   
 
 ```{r, echo = FALSE, out.width= "1000px", fig.align="left"}
-knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operatorspng"))
+knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operators.png"))
 ```
 
 :::
@@ -750,7 +750,7 @@ x <= 10
 - Returns either `FALSE` (`0`) or `TRUE` (`1`)  
 
 ```{r, echo = FALSE, out.width= "1000px", fig.align="left"}
-knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operatorspng"))
+knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operators.png"))
 ```
  
 :::
@@ -778,7 +778,7 @@ x > 10
 - Returns either `FALSE` (`0`) or `TRUE` (`1`)   
 
 ```{r, echo = FALSE, out.width= "1000px", fig.align="left"}
-knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operatorspng"))
+knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operators.png"))
 ```
    
 :::
@@ -806,7 +806,7 @@ x >= 10
 - Returns either `FALSE` (`0`) or `TRUE` (`1`)    
 
 ```{r, echo = FALSE, out.width= "1000px", fig.align="left"}
-knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operatorspng"))
+knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operators.png"))
 ```
 
 :::
@@ -835,7 +835,7 @@ x == 10
 - Returns either `FALSE` (`0`) or `TRUE` (`1`)      
 
 ```{r, echo = FALSE, out.width= "1000px", fig.align="left"}
-knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operatorspng"))
+knitr::include_graphics(here( "Intro_R_part2", "images", "relational_operators.png"))
 ```
 
 :::

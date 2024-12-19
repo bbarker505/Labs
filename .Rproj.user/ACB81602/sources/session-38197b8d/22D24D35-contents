@@ -1,9 +1,0 @@
-# tmax = maximum temperature
-# tmin = minimum temperature
-# LDT = lower development threshold
-dd_today <- function(tmax, tmin, LDT) {
-  dds <- (tmax + tmin)/2 – LDT
-  if (dds < 0) {
-    dds <- 0
-  }
-}
