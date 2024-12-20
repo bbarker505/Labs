@@ -3,7 +3,7 @@ library(here)
 
 # Relative path to a file called "file.txt"
 # Notice that the full path is returned in the console
-here("Intro_R_part1", "files", "file.txt")
+here("Intro_R_part1", "files", "file1.txt")
 
 # Load the file using a relative path
 readLines(here("Intro_R_part1", "files", "file1.txt"))

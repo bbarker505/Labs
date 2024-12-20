@@ -1,6 +1,6 @@
 ---
 title: '**Copying Lab Assignments**'
-subtitle: '**Ecological Systems Modeling (Winter 2024)**'
+subtitle: '**Ecological Systems Modeling (Winter 2025)**'
 output:
   pdf_document: default
   html_document:

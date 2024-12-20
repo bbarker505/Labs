@@ -267,6 +267,10 @@ knitr::include_graphics(here("Intro_R_part1", "images", "R_vRStudio.png"))
 
 - Everyone log on to `HORT599` in Canvas  
 
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "Canvas_course.png"))
+```
+
 ## We will use RStudio on Jupyter Hub at [OSU](https://uit.oregonstate.edu/tsa/data-science) 
 
 - Navigate to (`Modules` -> `Jupyter Hub`)  
@@ -502,8 +506,8 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio7.png"))
 
 ## Open your project and load some files
 
-- Your project may already open - check in the upper right corner  
-- If not, open your project (`Labs.proj`)  
+- We will be using the `Labs` project (`Labs.proj`) for all tutorials and lab assignments  
+- In RStudio, if you're project isn't already open, click on `File` -> `Open Project`  
 
 ```{r, echo = FALSE, fig.align = "left"}
 knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio8.png"))
@@ -539,7 +543,6 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio11.png"))
 
 ## The `here` package
 
-- For this class, we will use the `here` package to use project-relative paths  
 - Select all text in the script by pressing `Ctrl + A` 
 - Click on the `Run` button on the Source pane  
 
@@ -549,8 +552,9 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio12.png"))
 
 ## Output in the Console pane
 
-- Line 6 of the code was the project-relative path to `file.txt`  
-- Line 9 read the lines of `file.txt` using `readLines()` (see result in console)
+- Line 6 of the code was the project-relative path to `file1.txt`  
+- Line 9 read the lines of `file1.txt` using `readLines()` (see result in console)  
+- The next lines read `file2.txt`, which uses an absolute path  
 
 ```{r, echo = FALSE, fig.align = "left"}
 knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio13.png"))
