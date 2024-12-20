@@ -298,43 +298,19 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_Canvas3.png"))
 
 - You should see your Jupyter Hub workspace (mine is below)  
 - Other students cannot modify anything in your workspace  
+- The `Launcher` tab contains your Jupyter Notebook for this course  
+- For this course, we will only be utilizing RStudio  
 
 ```{r, echo = FALSE, fig.align = "left"}
 knitr::include_graphics(here("Intro_R_part1", "images", "JH_first_login.png"))
 ```
 
-## Jupyter Notebook
-
-- The `Launcher` tab contains your Jupyter Notebook for this course  
-- For this course, we will only be utilizing RStudio  
-
-```{r, echo = FALSE, fig.align = "left"}
-knitr::include_graphics(here("Intro_R_part1", "images", "JH_Launcher1.png"))
-```
-
-## In Jupyter Hub
-
-- Click on the new folder icon  
-
-```{r, echo = FALSE, fig.align = "left"}
-knitr::include_graphics(here("Intro_R_part1", "images", "JH_Launcher2.png"))
-```
-
-## In Jupyter Hub
-
-- Click on the new folder icon  
-- Create a directory (folder) named `Labs`  
-
-```{r, echo = FALSE, fig.align = "left"}
-knitr::include_graphics(here("Intro_R_part1", "images", "JH_Launcher3.png"))
-```
-
-## In Jupyter Hub
+## Jupyter Hub
 
 - Click the `RStudio` icon in your Notebook (in `Launcher` tab)
 
 ```{r, echo = FALSE, fig.align = "left"}
-knitr::include_graphics(here("Intro_R_part1", "images", "JH_Launcher4.png"))
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_first_login2.png"))
 ```
 
 ## RStudio is divided into 4 "panes"
@@ -414,7 +390,7 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio1.png"))
 
 ## Create an R project for this course
 
-2. Choose `Existing Directory`, then `New Project`  
+2. Choose `New Directory`  
 
 ```{r, echo = FALSE, fig.align = "left"}
 knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio2.png"))
@@ -422,10 +398,26 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio2.png"))
 
 ## Create an R project for this course
 
-3. Select the `Labs` folder that you recently created  
+3. Select `New Project` 
 
 ```{r, echo = FALSE, fig.align = "left"}
 knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio3.png"))
+```
+
+## Create an R project for this course
+
+4. Type `Labs` in the Directory name box
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio4.png"))
+```
+
+## Create an R project for this course
+
+5. You should now see a `Labs.Rproj` file in the Files/Plots/Packages/etc. pane
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio5.png"))
 ```
 
 ## The working directory
@@ -435,7 +427,7 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio3.png"))
 - It should return `/home/username/Labs`  (username is your ONID)
 
 ```{r, echo = FALSE, fig.align = "left"}
-knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio4.png"))
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio6.png"))
 ```
 
 ## Why are we doing this?
@@ -466,7 +458,7 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio4.png"))
 knitr::include_graphics(here("Intro_R_part1","images", "copy_labs_1.png"))
 ```
 
-## Method 1: copy folder using Terminal in RStudio
+## Copy folder using Terminal in RStudio
 
 Open up RStudio and click on the Terminal tab in the Console pane (bottom-left)
 
@@ -474,11 +466,11 @@ Open up RStudio and click on the Terminal tab in the Console pane (bottom-left)
 knitr::include_graphics(here("Intro_R_part1","images", "copy_labs_2.png"))
 ```
 
-## Method 1: copy folder using Terminal in RStudio
+## Copy folder using Terminal in RStudio
 
 Type in the following command in the terminal:
 
-`cp -ur $HOME/hub_data_share/Intro_to_R_part1* $HOME/Labs/`
+`cp -ur $HOME/hub_data_share/Intro_to_R_part1 $HOME/Labs/`
 
 ```{r, echo = FALSE, out.width= "800px"}
 knitr::include_graphics(here("Intro_R_part1","images", "copy_labs_3.png"))
@@ -489,7 +481,7 @@ knitr::include_graphics(here("Intro_R_part1","images", "copy_labs_3.png"))
 - `-r` option indicates drilling down through the directory structure  
 - `$HOME` is the path to your home directory, which is `/home/your_onid`  
 
-## Method 1: copy folder using Terminal in RStudio
+## Copy folder using Terminal in RStudio
 
 - If it worked correctly, you should see the `Intro_R_Part1` folder  
 - (In the `Files` tab of the Files/Plots/Packages/etc. pane)  
@@ -498,33 +490,32 @@ knitr::include_graphics(here("Intro_R_part1","images", "copy_labs_3.png"))
 knitr::include_graphics(here("Intro_R_part1", "images", "copy_labs_4.png"))
 ```
 
-## Method 2: Using the Terminal in Jupyter Hub
-
-1. In the `Launcher` tab, scroll down to the `Other` section  
-
-2. Click on `Terminal` (black box with money symbol) to start a session   
-
-3. Type `cp -ur $HOME/hub_data_share/Intro_to_R_part1* $HOME/Labs/`
-
-```{r, echo = FALSE, out.width= "800px", fig.align="right"}
-knitr::include_graphics(here("Intro_R_part1", "images", "copy_labs_5.png"))
-```
-
 ## Open your project and load some files
 
 - We will be using the `Labs` project (`Labs.proj`) for all tutorials and lab assignments  
 - In RStudio, if you're project isn't already open, click on `File` -> `Open Project`  
 
 ```{r, echo = FALSE, fig.align = "left"}
-knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio5.png"))
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio7.png"))
 ```
+
 
 ## Open your project and load some files
 
-- Open your project (`Labs.proj`)  
+- Your project may already open - check in the upper right corner  
+- If not, open your project (`Labs.proj`)  
 
 ```{r, echo = FALSE, fig.align = "left"}
-knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio6.png"))
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio8.png"))
+```
+
+
+## Open an R script
+
+- Click on `Open File` 
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio9.png"))
 ```
 
 ## Open an R script
@@ -534,7 +525,16 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio6.png"))
 - Select the `here_example.R` script
 
 ```{r, echo = FALSE, fig.align = "left"}
-knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio7.png"))
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio10.png"))
+```
+
+
+## The `here` package
+
+- For this class, we will use the `here` package to use project-relative paths  
+
+```{r, echo = FALSE, fig.align = "left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio11.png"))
 ```
 
 ## The `here` package
@@ -544,7 +544,7 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio7.png"))
 - Click on the `Run` button on the Source pane  
 
 ```{r, echo = FALSE, fig.align = "left"}
-knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio8.png"))
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio12.png"))
 ```
 
 ## Output in the Console pane
@@ -553,5 +553,5 @@ knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio8.png"))
 - Line 9 read the lines of `file.txt` using `readLines()` (see result in console)
 
 ```{r, echo = FALSE, fig.align = "left"}
-knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio9.png"))
+knitr::include_graphics(here("Intro_R_part1", "images", "JH_RStudio13.png"))
 ```
