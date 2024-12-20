@@ -1,6 +1,6 @@
 ---
 title: "R programming basics: coding etiquette"
-subtitle: "Ecological Systems Modeling </center> Jan 22-26, 2024"
+subtitle: "Ecological Systems Modeling </center> Jan 20-24, 2025"
 format: revealjs
 ---
 

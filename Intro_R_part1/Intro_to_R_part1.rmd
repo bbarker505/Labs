@@ -85,7 +85,7 @@ knitr::include_graphics(here("Intro_R_part1", "images", "What-is-R.jpg"))
 ## R is a commonly used programming language 
 
 ```{r, echo = FALSE}
-knitr::include_graphics(here("Intro_R_part1", "images", "top_languages_2019.jpeg"))
+knitr::include_graphics(here("Intro_R_part1", "images", "top_languages_2019.jpg"))
 ```
 
 ## R is more than just statistics

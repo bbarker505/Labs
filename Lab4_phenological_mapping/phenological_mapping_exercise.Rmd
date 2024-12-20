@@ -46,7 +46,7 @@ The USA National Phenology Network (USA-NPN) collects phenological observation r
 Observational and gridded (raster) data can be visualized or analyzed together for a variety of purposes. In the following exercises, we will visualize and quantify the concordance between model-predicted and observed dates of lilac leaf out, which is a phenophase of lilac in which new leaves appear. A **phenophase** is an observable stage of an animal's or plant's life cycle that can be defined by a start and end point. 
 
 ```{r, echo=FALSE, out.width = "650px", fig.align="left", fig.cap="Phenophases for a deciduous tree or shrub. Source: USA National Phenology Network"}
-knitr::include_graphics(here("images", "NPN_phenophase.jpg"))
+knitr::include_graphics(here("Lab4_phenological_mapping", "images", "NPN_phenophase.jpg"))
 ```
 
 Next, we will evaluate a phenology model for  [bagworm](https://www.usanpn.org/data/forecasts/Bagworm) (*Thyridopteryx ephemeraeformis*) that predicts the emergence of caterpillars. Bagworm caterpillars defoliate over 50 families of evergreen and deciduous trees and shrubs, primarily arborvitae, juniper, pine, and spruce. If left untreated, these pests are capable of extensive defoliation which can cause branch dieback or death. The bagworm forecasts may help stakeholders time their treatments to target caterpillars when they are small.
@@ -58,13 +58,13 @@ The usage of R in GIS is growing because of its enhanced capabilities for statis
 The `terra` package provides functions for working with raster data. A geospatial raster is any pixelated (or gridded) data where each pixel is associated with a specific geographical location. The value of a pixel can be continuous (e.g., elevation) or categorical (e.g., land use). 
 
 ```{r, out.width = "650px", echo=FALSE, fig.align="left", fig.cap="Example of a raster. Source: National Ecological Observatory Network"}
-knitr::include_graphics(here("images", "raster_concept.png"))
+knitr::include_graphics(here("Lab4_phenological_mapping", "images", "raster_concept.png"))
 ```
 
 The `sf` package has functions for storing and working with spatial vector data. A vector uses points and line segments to identify locations on the earth whereas the raster model uses a series of cells to represent locations on the earth. 
 
 ```{r, echo=FALSE, out.width = "650px", fig.align="left", fig.cap="Example of a spatial feature created using the sf packages. Source: https://r-spatial.github.io/sf/articles/sf5.html"}
-knitr::include_graphics(here("images", "sf_map.png"))
+knitr::include_graphics(here("Lab4_phenological_mapping", "images", "sf_map.png"))
 ```
 
 ### **Exercise 1: Geospatial Lilac Leaf Out Model**
@@ -267,7 +267,7 @@ conus_map <- ggplot() +
 conus_map
 
 # Save the plot
-ggsave(conus_map, filename = here("maps", "Lilac_leaf_out_2018.png"), 
+ggsave(conus_map, filename = here("Lab4_phenological_mapping", "maps", "Lilac_leaf_out_2018.png"), 
        dpi = 150, units = c('in'), width = 10, height = 6)
 ```
 
@@ -436,7 +436,7 @@ Finally, we will statistically compare observed vs. model-predicted phenophase (
 \
 \
 ```{r, echo=FALSE, out.width = "500px", fig.align="left", fig.cap="Source: https://plat.ai/blog/confusion-matrix-in-machine-learning/"}
-knitr::include_graphics(here("images", "confusion_matrix.png"))
+knitr::include_graphics(here("Lab4_phenological_mapping", "images", "confusion_matrix.png"))
 ```
 
 The confusion matrix approach allows you to evaluate overall predictive performance as well as whether the model over- or under-predicts the caterpillar phenophase. We're not too concerned if the model predicts caterpillars are present before they are documented in the field (e.g., maybe there were only a few caterpillars present so they weren't immediately noticed by observers). Model over-prediction, wherein caterpillars are predicted later than they are observed in the field, is more problematic because decision-makers may miss the best opportunity to treat populations. 
