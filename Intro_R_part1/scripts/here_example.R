@@ -5,13 +5,9 @@ library(here)
 # Notice that the full path is returned in the console
 here("Intro_R_part1", "files", "file.txt")
 
-# Load the file
-readLines(here("Intro_R_part1", "files", "file.txt"))
+# Load the file using a relative path
+readLines(here("Intro_R_part1", "files", "file1.txt"))
 
-# This is the faster and easier way to access this file than:
-readLines("/home/barkebri/Labs/Intro_R_part1/files/file.txt")
-
-# Also, you'd have to change the absolute path every time you move files
-# For example, if you copy labs from this course to your own computer and
-# don't use relative paths, you'd have to change every single line of code
-# where you import files. 
+# You can also load a file using an absolute path
+# But this method is more inefficient 
+readLines("/home/barkebri/Labs/Intro_R_part1/files/file2.txt")

@@ -1,0 +1,1 @@
+Hi, welcome to Ecological Systems Modeling! This is how to import a file using relative path.  It requires having an R project.
