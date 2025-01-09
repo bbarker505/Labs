@@ -12,7 +12,6 @@ format:
     slide-number: c/t
     width: 1600
     height: 900
-    css: ["theme/theme.css"]
     theme: simple
     echo: true
 ---
@@ -49,6 +48,63 @@ knitr::include_graphics(here("Intro_R_part1", "images", "intro_me.jpg"))
 :::
 
 ::::
+
+## R survey results (9 respondents)
+
+On a scale of 0 to 5, where 0 is "none" and 5 is "a lot", my experience with:  
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+(Q1) using the R programming language  
+(Q4) using RStudio (a.k.a. Posit)  
+(Q5) using RMarkdown or Quarto    
+(Q6) using "tidyverse" packages  
+:::
+
+::: {.column width="50%"}
+
+```{r, echo = FALSE, out.width= "1000px", fig.align="left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "Survey_Qs_1-5.png"))
+```
+:::
+
+::::
+
+## R survey results (9 respondents)
+
+I have experience with (TRUE/FALSE):
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+(Q7) writing loops (e.g., "for" loops)  
+(Q8) writing conditional functions   
+(Q9) writing my own functions  
+:::
+
+::: {.column width="50%"}
+
+```{r, echo = FALSE, out.width= "1000px", fig.align="left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "Survey_Qs_7-9.png"))
+```
+:::
+
+::::
+   
+
+## What this means for you
+
+- I will provide examples and guidance on assignment & class project code  
+- But you will also need to write code on your own, especially later in course  
+- It's hard for me to adjust the difficulty to everyone's skill level  
+- I will seek feedback and try to adjust accordingly  
+
+```{r, echo = FALSE, out.width= "1000px", fig.align="left"}
+knitr::include_graphics(here("Intro_R_part1", "images", "coding.png"))
+```
 
 ## Learning objectives
 
@@ -206,7 +262,7 @@ knitr::include_graphics(here("Intro_R_part1", "images", "twitter_purrr.png"))
 - Stay tuned at: `https://cascadiarconf.com/`  
 
 ```{r, echo = FALSE, out.width = "700px"}
-knitr::include_graphics(here("Intro_R_part1", "images", "Cascadia_R_Conf.png"))
+knitr::include_graphics(here("Intro_R_part1", "images", "CascadiaR_2025.png"))
 ```
 
 

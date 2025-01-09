@@ -401,7 +401,7 @@ knitr::include_graphics(here( "Intro_R_part2", "images", "R_objects_dataframe.pn
 - However, objects in list can be 1D, 2D, or nD  
 
 ```{r}
-# A list containing a matrix and two data frames
+# A list containing a data frame and a vector
 a_list <- list(spp_cover_df, months_fac)
 a_list
 class(a_list)
