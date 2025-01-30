@@ -1,6 +1,0 @@
-"0","# Date of adult emergence"
-"0","adult_emerg <- out_all %>%"
-"0","  filter(dd_accum >= 806) %>% # subset rows where dd_accum >= 806"
-"0","  slice_min(dd_accum) # keep row with values closest to 806"
-"0","# View output"
-"0","adult_emerg"

@@ -197,7 +197,7 @@ for (year in years) {
 
 ::: {.column width="60%"}
 
-```{r, echo = FALSE, out.height="800px", out.width="600px"}
+```{r, echo = FALSE, out.height="500px", out.width="500px"}
 knitr::include_graphics(here("Intro_R_part3", "images", "deep_nesting.jpg"))
 ```
 

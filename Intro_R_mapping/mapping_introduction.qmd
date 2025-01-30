@@ -1,6 +1,6 @@
 ---
-title: "Intro to mapping in R"
-subtitle: "Ecological Systems Modeling </center> Jan 29-Feb 2, 2024"
+title: "Intro to GIS and mapping in R"
+subtitle: "Ecological Systems Modeling </center> Jan 27-31, 2025"
 format: revealjs
 ---
 
@@ -17,14 +17,17 @@ format:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 library(here) # Start in R project directory
+library(dplyr) # Filtering
+library(ggplot2) # Mapping (plots)
 library(sf) # Spatial features
 library(terra) # Rasters
+library(tidyterra) # Custom scale
 ```
 
 
 ## Elements of Geographic Information System (GIS)
 
-```{r, out.width = "650px", echo=FALSE, fig.align="center", fig.cap="Source: Mierzejowska & Pomyko 2019"}
+```{r, out.width = "650px", echo=FALSE, fig.cap="Source: Mierzejowska & Pomyko 2019"}
 knitr::include_graphics(here("Intro_R_mapping","images", "GIS.png"))
 ```
 
@@ -34,12 +37,12 @@ knitr::include_graphics(here("Intro_R_mapping","images", "GIS.png"))
 
 ::: {.column width="50%"}
 
-**Advantages** 
-- It's *FREE*!!! 
-- Automate and repeat tasks 
-- Easier to make reproducible workflow 
-- Extend functionality 
-- Faster than pointing/clicking 
+**Advantages**  
+- It's *FREE*!!!  
+- Automate and repeat tasks   
+- Easier to make reproducible workflow   
+- Extend functionality  
+- Faster than pointing/clicking  
 
 ```{r, out.width = "650px", echo=FALSE, fig.align="left", fig.cap="Source: Aleks Buczkowski 2023"}
 knitr::include_graphics(here("Intro_R_mapping", "images", "Why-is-ArcGIS-So-Expensive.png"))
@@ -49,10 +52,10 @@ knitr::include_graphics(here("Intro_R_mapping", "images", "Why-is-ArcGIS-So-Expe
 
 ::: {.column width="50%"}
 
-**Disadvantages** 
-- Sometimes a steep learning curve 
-- Sometimes harder for quick exploratory analysis)  
-- (e.g., can quickly zoom/pan maps in ArcMap)  
+**Disadvantages**  
+- Sometimes a steep learning curve  
+- Sometimes harder for quick exploratory analysis    
+- (e.g., can quickly zoom/pan maps in ArcGIS)  
 
 ```{r, out.width = "400px", echo=FALSE, fig.align="left"}
 knitr::include_graphics(here("Intro_R_mapping", "images", "programmer_meme.jpg"))
@@ -66,7 +69,7 @@ knitr::include_graphics(here("Intro_R_mapping", "images", "programmer_meme.jpg")
 
 - Uses points and/or line segments to identify locations on earth 
 
-```{r, out.width = "650px", echo=FALSE, fig.align="center", fig.cap="Different types of vectors (source: Jakub Nowosad)"}
+```{r, out.width = "650px", echo=FALSE, fig.cap="Different types of vectors (source: Jakub Nowosad)"}
 knitr::include_graphics(here("Intro_R_mapping", "images", "vector.png"))
 ```
 
@@ -100,7 +103,7 @@ knitr::include_graphics(here("Intro_R_mapping", "images", "cont_vs_cat.png"))
 
 Provinces of Spain
 
-```{r, out.width = "700px", echo=FALSE, fig.align="left", fig.cap="Source: Paula Moraga}
+```{r, out.width = "700px", echo=FALSE, fig.align="left", fig.cap= "Source: Paula Moraga"}
 knitr::include_graphics(here("Intro_R_mapping", "images", "pol_v_rast1.png"))
 ```
 :::
@@ -119,14 +122,14 @@ knitr::include_graphics(here("Intro_R_mapping", "images", "pol_v_rast2.png"))
 ## `sf`: R package for working with vectors
 
 - `sf` = simple features   
-- Integration with the tidyverse 
+- Integration with the tidyverse  
 - Emphasis on the spatial geometry of real world objects  
 
 :::: {.columns}
 
 ::: {.column width="80%"}
 
-```{r, echo = FALSE, out.width = "1000px", fig.align="center-aligned", fig.cap="Source: Paula Moraga"}
+```{r, echo = FALSE, out.width = "600px", fig.cap="Source: Paula Moraga"}
 knitr::include_graphics(here("Intro_R_mapping", "images", "sf_objects.png"))
 ```
 
@@ -134,7 +137,7 @@ knitr::include_graphics(here("Intro_R_mapping", "images", "sf_objects.png"))
 
 ::: {.column width="20%"}
 
-```{r, echo = FALSE, out.width = "650px", fig.cap="center-aligned"}
+```{r, echo = FALSE, out.width = "300px"}
 knitr::include_graphics(here("Intro_R_mapping", "images", "sf_logo.png"))
 ```
 
@@ -144,7 +147,7 @@ knitr::include_graphics(here("Intro_R_mapping", "images", "sf_logo.png"))
 
 ## Functions in `sf` pacakge
 
-```{r, echo = FALSE, out.width = "1000px", fig.align="center-aligned"}
+```{r, echo = FALSE, out.width = "1000px"}
 knitr::include_graphics(here("Intro_R_mapping", "images", "sf_concept_map.png"))
 ```
 
@@ -156,7 +159,6 @@ knitr::include_graphics(here("Intro_R_mapping", "images", "sf_concept_map.png"))
 
 ```{r}
 ph_zones <- st_read(here("Intro_R_mapping", "data", "ph_zones_PRISM_PNW.shp"))
-ph_zones
 ```
 ## Plot plant hardiness zones using `ggplot2`
 
@@ -170,13 +172,16 @@ ggplot() +
 
 ## Using other tidyverse functions on `sf` objects
 
-- Tidyverse functions will work on `sf` objects  
-- For example, use `dplyr` to filter desired data  
+:::: {.columns}
 
-```{r}
+::: {.column width="50%"}
+- Tidyverse functions will work on `sf` objects  
+- For example, use `dplyr` to filter desired data    
+
+```{r, eval=FALSE}
 # Subset of zones (8b, 9a, 9b)
 ph_zones_sub <- ph_zones %>%
-  filter(zone %in% c("8b", "9a", "9b"))
+  dplyr::filter(zone %in% c("8b", "9a", "9b"))
 
 # Plot result
 ggplot() + 
@@ -185,28 +190,34 @@ ggplot() +
   theme_bw() 
 ```
 
-## `terra`; R package for working with rasters
-
-- Functions for creating, reading, manipulating, and writing raster data  
-- Can work with single rasters and with raster "stacks" (multiple bands)
-
-:::: {.columns}
+:::
 
 ::: {.column width="50%"}
 
-```{r, out.width = "700px", echo=FALSE, fig.align="left", fig.cap="Source: Robert Hijmans}
-knitr::include_graphics(here("Intro_R_mapping", "images", "raster_bands.png"))
-```
+```{r, echo=FALSE, out.height= "700px"}
+# Subset of zones (8b, 9a, 9b)
+ph_zones_sub <- ph_zones %>%
+  dplyr::filter(zone %in% c("8b", "9a", "9b"))
 
-::: {.column width="20%"}
-
-```{r, echo = FALSE, out.width = "600px", fig.cap="center-aligned", fig.cap = "Jakub Nowosad"}
-knitr::include_graphics(here("Intro_R_mapping", "images", "logo.png"))
+# Plot result
+ggplot() + 
+  geom_sf(data = ph_zones_sub, aes(fill = zone)) +
+  ggtitle("Plant Hardiness Zones 8b-9b") +
+  theme_bw() 
 ```
 
 :::
 
 ::::
+
+## `terra`: R package for working with rasters
+
+- Functions for creating, reading, manipulating, and writing raster data  
+- Can work with single rasters and with raster "stacks" (multiple bands)
+
+```{r, out.width = "700px", echo=FALSE, fig.align="left", fig.cap="Source: Robert Hijmans"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "terra_rasters.png"))
+```
 
 ## Example:
 
@@ -258,17 +269,18 @@ knitr::include_graphics(here("Intro_R_mapping", "images", "layering.png"))
 
 ::: {.column width="75%"}
 
-```{r, echo = FALSE, out.width = "1500px", fig.cap="center-aligned", fig.cap="Source: Barker et al. (2023) *Frontiers in Insect Science*"}
-knitr::include_graphics(here("Intro_R_mapping", "EAB_map.png"))
+```{r, echo = FALSE, out.width = "750px", fig.cap="center", fig.cap="Source: Barker et al. (2023) *Frontiers in Insect Science*"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "EAB_map.png"))
 ```
 
 :::
 
 ::: {.column width="25%"}
 
-```{r, echo = FALSE, out.width = "250px"}
-knitr::include_graphics(here("Intro_R_mapping", "emerald-ash-borer-on-leaf.png"))
+```{r, echo = FALSE, out.width = "200px"}
+knitr::include_graphics(here("Intro_R_mapping", "images", "emerald-ash-borer-on-leaf.png"))
 ```
+
 :::
 
 ::::

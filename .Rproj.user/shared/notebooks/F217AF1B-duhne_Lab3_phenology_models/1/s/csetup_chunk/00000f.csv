@@ -1,6 +1,0 @@
-"0","knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)"
-"0","library(here) # Start in R project directory"
-"0","library(dplyr) # Data wrangling"
-"0","library(ggplot2) # Plotting model outputs"
-"0","library(knitr) # Including graphics"
-"0","library(readr) # Importing weather data"

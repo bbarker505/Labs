@@ -1,7 +1,0 @@
-type,area,cs_thres,csu_max1
-all_excl_sev,12624,0,49
-all_excl_mod,84496,0,49
-not_excl,18768,0,49
-CS_excl,91232,0,49
-HS_excl,6032,0,49
-Gt1_gen,96224,0,49

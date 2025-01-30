@@ -1,5 +1,0 @@
-"0","egg_hatch2 <- out_all2 %>%"
-"0","  group_by(year) %>% # group by year"
-"0","  filter(dd_accum >= 1438) %>% # subset rows where dd_accum >= 1438"
-"0","  slice_min(dd_accum) # keep row with values closest to 1438"
-"0","egg_hatch2"

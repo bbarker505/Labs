@@ -1,5 +1,0 @@
-"0","dd_plot +"
-"0","  geom_vline(xintercept = adult_emerg_doy, color =""red"", linetype = ""dashed"", size = 0.75) +"
-"0","  geom_text(aes(x = adult_emerg_doy + 5, label=""1% Adult emerg."", y = 2200), colour=""red"", size = 4, angle=90) +"
-"0","  geom_vline(xintercept = egg_hatch_doy, color =""red"", linetype = ""dashed"", size = 0.75) +"
-"0","  geom_text(aes(x = egg_hatch_doy + 5, label=""egg hatch."", y = 2200), colour=""red"", size = 4, angle=90) "
