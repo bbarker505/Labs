@@ -445,10 +445,10 @@ yr <- 2016
 # Output dir: cs_thres_neg0.8
 # coldstress_threshold <- -0.8 # value 2
 
-## **YOU NEED TO DO** - change the modeling settings above
+## **YOU NEED TO DO** 
 # "cold_stress_max1" sensitivity tests: default is 35
 # Test 49 and 63 units (+40%)
-# See commented code above for these parameters
+# See commented code in the FCM parameters above
 ```
 
 After completing the model runs, import the CSV files that contain area estimates. All CSV files are found by searching a pattern, and then stored in a list by applying the `read.csv()` function. 
@@ -507,12 +507,12 @@ sens_cs_thres
 # RUN THE MODEL using "coldstress_units_max1" = 49 and 63 (coldstress_threshold = 0)
 # Then uncomment the code block below
 # Area not excluded by climate stress should increase as max1 increases
-sens_csu_max1 <- all_areas_dfs %>%
-   filter(grepl("max1", param)) %>%
-   mutate(chng_output = (area - 16544) / 16544,
-          chng_param = (csu_max1 - 35) / 35) %>%
-   mutate(prop_chng = chng_output/chng_param)
-sens_csu_max1
+# sens_csu_max1 <- all_areas_dfs %>%
+#    filter(grepl("max1", param)) %>%
+#    mutate(chng_output = (area - 16544) / 16544,
+#           chng_param = (csu_max1 - 35) / 35) %>%
+#    mutate(prop_chng = chng_output/chng_param)
+# sens_csu_max1
 
 # Combine the results 
 sens_all <- bind_rows(sens_cs_thres, sens_csu_max1)
