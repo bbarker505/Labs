@@ -1,0 +1,570 @@
+---
+author: "Your name"
+title: "Lab 4: Species distribution modeling (process-based)"
+date: "`r format(Sys.Date(), tz = 'America/Los_Angeles')`"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(here)
+library(terra) # working with rasters
+library(sf) # working with simple features
+library(rnaturalearth) # states
+library(ggplot2) # plotting
+library(ggthemes) # extra plot themes
+library(dplyr) # data wrangling
+library(stringr) # working with strings
+```
+
+### **Learning Objectives**
+
+- Produce and interpret a process-based species distribution model   
+- Evaluate the impacts of climate stress in shaping a species' distribution   
+- Compare and contrast model predictions in space and time     
+- Practice conducting a sensitivity analysis  
+- Apply custom functions and raster calculations in R   
+
+### **Grading Rubric**
+
+Most of your grade will be for effort - i.e., that you did your best to follow instructions and to answer questions. The lab is worth 30 pts. Points may be deducted for errors in code, not following instructions, or answering questions incorrectly or incompletely.  
+
+### **Instructions**
+
+There are a set of questions associated with each exercise below that you must complete either during class or on your own time. Record answers to the questions **within** the Markdown (`.Rmd`) file and record your name on line 2. Once you're done with the lab, knit the R markdown file as a Word document (`.docx`) within RStudio by clicking the `Knit` button found in the toolbar (look for a ball of yarn with a needle sticking out of it) and selecting `Knit to Word`. Ignore any warning messages that pop up in the Console during knitting. Submit the `.Rmd` **and** the `.docx` files on Canvas.
+
+### **Introduction**
+
+The [Degree-Day, establishment Risk, and Pest event maps (DDRP) platform](https://uspest.org/CAPS/) uses a process-based modeling approach in which degree-days and temperature stress are calculated daily and accumulate over time to model phenology and climatic suitability, respectively. DDRP requires gridded daily minimum and maximum temperature data (`tmin` and `tmax`, respectively) for a time frame of interest, as well as a species parameter file that has information on the species' temperature requirements for development and survival. Model products include maps of the predicted potential distribution (climate-based risk of establishment), number of generations, and dates of phenological events. Note: this lab presents an older and pared down version of DDRP. The code for DDRP that is used at USPest.org is available on [GitHub](https://github.com/bbarker505/ddrp_v3).
+
+```{r, echo=FALSE, out.width = "800px", fig.cap="Fig. 1. An overview of the DDRP modeling process"}
+knitr::include_graphics(here("Lab4_SDMs_process_based", "images", "DDRP.PNG"))
+```
+
+In this lab, we are focusing on DDRP’s process-based approach to modeling climatic suitability, which shares some features with the [CLIMEX platform](https://www.hearne.software/Software/CLIMEX-DYMEX/Editions), but it uses a daily time step and can accept climate data at any temporal and spatial resolution [(Barker et al. 2020)](https://doi.org/10.1371/journal.pone.0244005). Cold and heat stress accumulation occurs during the daily time step and is similar to the modeling of degree-days for development, except that temperature stress thresholds and daily `tmin` and `tmax` data are used to accumulate temperature stress units (Fig. 1). The extent of the difference between the threshold and temperature will influence how many stress units are calculated for any given day. 
+
+DDRP then determines whether total accumulations for a given day exceed the moderate or severe cold and heat stress limits of a species, which provides two levels of exclusion (i.e., moderate vs. severe stress exclusion) at any given location (Fig. 1). 
+
+For an invasive species, areas that are not excluded by either moderate or severe temperature stress by DDRP are part of the potential distribution and therefore at highest risk of establishment because of increased population survival. Moderate stress may inhibit long-term establishment, with a high probability that short-term establishment could occur during favorable years, whereas areas under severe stress would likely prevent even short-term (one complete year) establishment. 
+
+As robust data to test this assumption are lacking for most species, using two levels of climate stress would at least provide a way to represent uncertainty for estimating the probability of establishment, as several sources of uncertainty and error can bias climatic suitability model predictions. 
+
+### **Model Functions**
+
+First we define several custom functions that we need for the DDRP model. All raster outputs are plotted using custom functions in the `Lab4_plotting_funcs.R` script. These were included in a separate file to avoid taking up a lot of space for this lab assignment. You can import R scripts into R using the `source()` function.
+
+```{r}
+# Import plotting functions
+source(here("Lab4_SDMs_process_based", "Lab4_plotting_funcs.R"))
+
+# Functions for calculating DDs and climate stress 
+#### Cond: if then else rasters (conditional) ####
+Cond <- function(condition, trueValue, falseValue){
+  return(condition * trueValue + (!condition)*falseValue)
+}
+
+#### Average DD Calc method ((tmax + tmin)/2 - LDT) but with ####
+#    horizontal (substitution) upper threshold:
+AvgDD <- function(tmax, tmin, LDT, UDT) {
+  return(Cond(tmax < LDT, 0, 
+              Cond(tmin > UDT, 0,
+                   Cond(tmax > UDT, (UDT + tmin)/2 - LDT,
+                        Cond((tmax + tmin)/2 - LDT < 0, 0, 
+                             (tmax + tmin)/2 - LDT)))))
+}
+```
+
+#### **Model Settings and Parameters**
+
+We'll demonstrate the modeling approaching using the false codling moth (FCM), *Thaumatotibia leucotreta*. FCM is a pest of more than 100 host plants, including all *Citrus* spp. and more than 40 other crops of economic importance in the US including corn, cotton, grapes, peaches, eggplant, and peppers. Its potential economic impact rating is “High” owing to its highly polyphagous habits and its potential ability to thrive in many climates in the US. The life cycle of FCM is shown below.
+
+```{r, echo=FALSE, fig.cap ="Source: https://www.biobee.com", }
+knitr::include_graphics(here("Lab4_SDMs_process_based", "images", "false-codling-moth-life-cycle.jpg"))
+```
+
+Prior to running the DDRP model, we specify the directories for input climate data and model outputs. For exercises below, you will need to change the year (`yr`, `spp`, `output_dir`, and `coldstress_units_max1`).
+
+For now, we will run the model for FCM for `2011` using default model parameters.
+
+```{r}
+#### User Settings - CHANGE HERE
+spp <- "FCM"
+LDT <- 11.7
+UDT <- 38
+yr <- "2011" 
+
+# Directory Locations - change output_dir for sensitivity analyses
+# REMEMBER to change the last folder for the output directory (output_dir)
+prism_dir <- here("Lab4_SDMs_process_based", "PRISM", yr)
+output_dir <- here("Lab4_SDMs_process_based", "outputs", spp, yr, "default")
+
+#### Pest Specific, Multiple Life Stage Phenology Model Parameters:
+#LDT = lower development threshold, temp at which growth = 0
+#DD = degree days, number of cumulative heat units to complete that lifestage
+# Params for False codling moth, Thaumatotibia leucotreta, in Degrees Celsius
+eggLDT <- LDT
+larvaeLDT <- LDT
+pupaeLDT <- LDT
+adultLDT <- LDT
+eggUDT <- UDT
+larvaeUDT <- UDT
+pupaeUDT <- UDT
+adultUDT <- UDT 
+
+# Degree-day requirements for each stage 
+eggDD <- 71
+larvaeDD <- 155
+pupaeDD <- 175 
+adultDD <- 83
+
+# Temperature exclusion threshold and accum units parameters
+# Changes max1 values for sensitivity tests (49 and 63) below
+coldstress_threshold  <- 0  # cold stress threshold - default is 0
+# coldstress_threshold <- -0.4 # "cs_thres_neg0.4" folder
+# coldstress_threshold <- -0.8 # "cs_thres_neg0.8" folder
+
+coldstress_units_max1 <- 35  # "most" all die once reached - default is 35
+# coldstress_units_max1 <- 49 # "csu_max1_49" folder
+# coldstress_units_max1 <- 63 # "csu_max1_63" folder
+coldstress_units_max2 <- 125  # all die once reached
+heatstress_threshold   <- 40   # heat stress threshold
+heatstress_units_max1  <- 75   # "most" all die once reached
+heatstress_units_max2  <- 150  # all die once reached
+```
+
+The code chunk below imports and processes the gridded `tmin` and `tmax` data, which were derived from the [PRISM database](https://www.prism.oregonstate.edu/). PRISM data have been aggregated to a ~`16` km^2^ resolution to make DDRP run faster. The code also creates empty rasters (templates) for storing results of the model.
+
+```{r} 
+# Weather inputs and outputs
+vars <- c("tmin", "tmax")
+fls_list <- c("tminfiles", "tmaxfiles")
+
+# Get raster files for each temperature variable
+for (i in 1:length(vars)) {
+  
+  # List files by variable (pattern)
+  fl_pat <- glob2rx(paste0("*PRISM_", vars[i], "*.tif$*"))
+  fls <- list.files(path = prism_dir, pattern = fl_pat, full.names = TRUE)
+  assign(fls_list[i], fls)
+}
+
+# Extract date from temperature files using regex pattern matching
+dats <- unique(regmatches(tminfiles, regexpr(pattern = "[0-9]{8}", 
+                                             text = tminfiles)))
+
+## Create blank template from a temp file
+# This template is used for cropping the temperature (tmin, tmax) rasters
+template <- rast(tminfiles[1]) # Template 
+template[!is.na(template)] <- 0
+extent <- ext(template)
+
+## Initialize all tracking rasters as zero with the template
+# Phenology
+DDtotal     <- template
+DDaccum     <- template
+Lifestage   <- template
+NumGen      <- template
+
+# Cold/heat stress units
+coldmask         <- template  # binary mask for daily cold stress units
+coldstress       <- template  # count of daily cold stress units
+coldunitsCUM     <- template  # cumulative cold sterss units
+coldstressTHRESH <- coldstress_threshold # mask for cold stress units threshold
+coldstressMAX1   <- coldstress_units_max1 # use for max cold stress before mortality??
+coldstressMAX2   <- coldstress_units_max2 # use for uncertainty zone max cold stress before mortality??
+coldEXCL          <- template  # EXCL map for cold stress
+heatmask          <- template  # binary mask for daily heat stress units
+heatstress        <- template  # use for heat stress units
+heatunitsCUM      <- template  # cumulative heat stress units
+heatstressTHRESH  <- heatstress_threshold # mask for heatstress units threshold
+heatstressMAX1    <- heatstress_units_max1 # use for max heat before mortality?
+heatstressMAX2    <- heatstress_units_max2 # use for max heat before mortality?
+heatEXCL          <- template  # EXCL map for heat stress
+allEXCL           <- template  # EXCL map for combined stresses (cold,heat,later: moisture)
+```
+
+### **PRISM data**
+
+Before running the model, use the code chunk below to import one of the temperature rasters in the PRISM folder and answer the questions below. 
+
+```{r}
+# Hint: look at Lab 3 to remember how to import a raster
+
+# You can use the `plot()` function to visualize the raster if you wish.
+
+```
+
+**(1)** Describe two attributes of the raster you imported. (1 pt)
+
+*Response*:
+
+
+**(2)** What is a primary difference between the temperature data used in this lab vs. data for Lab 2 (Phenology models)? (1 pt)
+
+*Response*:
+
+
+### **Run the Model**
+
+The `for` loop below iterates over each day of the year and calculates degree-day accumulation, number of completed generations, life stages present, cold stress accumulation, heat stress accumulation, areas excluded by cold stress, areas excluded by heat stress, and areas excluded by all climate stresses. The `eval` argument is set to `FALSE` so that this step will be skipped when you knit the R Markdown file.
+
+NOTE: this step can be **SLOW** - be patient. Anytime you change parameter values, you must run the code chunks above before proceeding to this step.  
+
+```{r, message = FALSE, progress = FALSE, results=FALSE, eval=FALSE}
+# Accumulate degree days and reclass cells to NA with temperature exclusion
+# NA for exclusion means that DD accum cannot occur anymore with incomplete
+# generation development and no oviposition to next generation. 
+for (d in dats) {
+  
+    #print(d)
+
+    # Read in that day's PRISM raster files
+    tmin_pattern <- paste("(PRISM_tmin_)(.*)(", d,")(.*)(.tif)$", sep="")
+    tmin_fl <- list.files(prism_dir, pattern=tmin_pattern, full.names=TRUE)
+    tmax_pattern <- paste("(PRISM_tmax_)(.*)(", d,")(.*)(.tif)$", sep="")
+    tmax_fl <- list.files(prism_dir, pattern=tmax_pattern, full.names=TRUE)
+    
+    # Rasters 
+    tmin <- rast(tmin_fl)
+    tmax <- rast(tmax_fl)
+    
+    #Create stage specific lifestage binary rasters
+    #Limits operations to a mask for cells that are in that lifestage
+    #This is what allows for pixel by pixel tracking of what lifestage
+    # that cell is in
+    LS0 <- Lifestage == 0
+    LS1 <- Lifestage == 1
+    LS2 <- Lifestage == 2
+    LS3 <- Lifestage == 3
+
+    # Cold stress
+    coldmask <- tmin < coldstressTHRESH  # make todays cold mask
+    coldstress <- coldmask * abs(coldstressTHRESH - tmin) # compute todays cold stress DDs
+    coldunitsCUM <- coldunitsCUM + coldstress
+    # ASSUME NEW -2=severe -1=mod 0=none throughout
+    coldEXCL <- Cond(coldunitsCUM >= coldstressMAX2,-2,Cond(coldunitsCUM >= coldstressMAX1,-1,0))
+    
+    # Heat stress
+    heatmask <- tmax > heatstressTHRESH  # make todays heat mask
+    heatstress <- heatmask * abs(tmax - heatstressTHRESH) # compute todays heat stress DDs
+    heatunitsCUM <- heatunitsCUM + heatstress
+    heatEXCL <- Cond(heatunitsCUM >= heatstressMAX2,-2,Cond(heatunitsCUM >= heatstressMAX1,-1,0))
+    
+    # All climate stress (cold + heat)
+    allEXCL <- Cond((coldEXCL == 0) & (heatEXCL == 0),0,
+               Cond((coldEXCL == -1) & (heatEXCL >= -1),-1,
+               Cond((coldEXCL >= -1) & (heatEXCL == -1),-1,-2)))
+
+    # Loop through each life stage
+    for (i in 1:4) {
+      if (i==1){
+         #developmental degree days  (zero values for temps below LDT)
+         dd0 <- AvgDD(tmax,tmin,eggLDT,eggUDT)
+         dd0 <- dd0 * LS0
+         #Accumulate degree days
+         DDaccum <- DDaccum + dd0
+         #Calculate lifestage progression
+         progress0 <- (DDaccum >= eggDD) * LS0
+         Lifestage <- Lifestage + progress0
+         #Reset the DDaccum cells to zero for cells that progressed to next lifestage
+         progress0 <- (DDaccum >= eggDD) * LS0
+         DDaccum <- Cond(progress0 == 0, DDaccum, 0)
+
+      } else if (i == 2) {
+         # developmental degree days
+         dd1 <- AvgDD(tmax,tmin,larvaeLDT,larvaeUDT)
+         dd1 <- dd1 * LS1
+         # Accumulate degree days
+         DDaccum <- DDaccum + dd1
+         # Accumulate total degree days
+         DDtotal <- DDtotal + dd1
+         # Calculate lifestage progression
+         progress1 <- (DDaccum >= larvaeDD) * LS1
+         Lifestage <- Lifestage + progress1
+         # Reset the DDaccum cells to zero for cells that progressed to next lifestage
+         progress1 <- (DDaccum >= larvaeDD) * LS1
+         DDaccum <- Cond(progress1 == 0, DDaccum, 0)
+
+      } else if (i == 3) {
+         # developmental degree days
+         dd2 <- AvgDD(tmax,tmin,pupaeLDT,pupaeUDT)
+         dd2 <- dd2 * LS2
+         DDaccum <- DDaccum + dd2
+         # Calculate lifestage progression
+         progress2 <- (DDaccum >= pupaeDD) * LS2
+         Lifestage <- Lifestage + progress2
+         # Reset the DDaccum cells to zero for cells that progressed to next lifestage
+         progress2 <- (DDaccum >= pupaeDD) * LS2
+         DDaccum <- Cond(progress2 == 0, DDaccum, 0)
+
+      } else { # adult stage, or time to 50% oviposition
+         # developmental degree days
+         dd3 <- AvgDD(tmax,tmin,adultLDT,adultUDT)
+         dd3 <- dd3 * LS3
+         # Accumulate degree days
+         DDaccum <- DDaccum + dd3
+         # Reset lifestage progression to 0 for oviposition
+         progress3 <- (DDaccum >= adultDD) * LS3
+         Lifestage <- Cond(progress3 == 1,0, Lifestage)
+         # Reset the DDaccum cells to zero for cells that progressed to next lifestage
+         DDaccum <- Cond(progress3 == 1,0, DDaccum)
+         # Increment NumGen + 1
+         NumGen <- NumGen + progress3
+         }
+    }
+}
+```
+
+### **Save and Plot Model Outputs**
+
+Model outputs are rasters. We'll use the `writeRaster()` function in `terra` to save each output.
+
+```{r, eval=FALSE}
+# Save raster outputs
+writeRaster(DDtotal, paste0(output_dir, "/", spp, "_Total_DDs_", yr, ".tif"), overwrite=TRUE)
+writeRaster(NumGen, paste0(output_dir, "/", spp, "Num_Gens_", yr, ".tif"), overwrite=TRUE)
+writeRaster(coldunitsCUM, paste0(output_dir, "/", spp, "_Cold_Stress_Units_", yr, ".tif"),  overwrite=TRUE)
+writeRaster(coldEXCL, paste0(output_dir, "/", spp, "_Cold_Stress_Excl_", yr, ".tif"), overwrite=TRUE)
+writeRaster(heatunitsCUM, paste0(output_dir, "/", spp, "_Heat_Stress_Units_", yr, ".tif"), overwrite=TRUE)
+writeRaster(heatEXCL, paste0(output_dir, "/", spp, "_Heat_Stress_Excl_", yr, ".tif"), overwrite=TRUE)
+writeRaster(allEXCL, paste0(output_dir, "/", spp, "_All_Stress_Excl_", yr, ".tif"), overwrite=TRUE)
+```
+
+Next, we'll plot the rasters using the `PlotMap` function (custom function). Plots are saved as image (`.png`) files.
+
+```{r, eval=FALSE}
+# Plot raster outputs and save plots
+PlotMap(coldEXCL, yr, type = "Cold stress exclusion")
+PlotMap(heatEXCL, yr, type = "Heat stress exclusion")
+PlotMap(allEXCL, yr, type = "All stress exclusion")
+PlotMap(DDtotal, yr, type = "Total DDs")
+PlotMap(NumGen, yr, type = "Number of generations")
+PlotMap_stress(coldunitsCUM, year = yr, type = "Cold stress accumulation",
+               max1 = coldstressMAX1, max2 = coldstressMAX2)
+PlotMap_stress(heatunitsCUM, year = yr, type = "Heat stress accumulation",
+               max1 = heatstressMAX1, max2 = heatstressMAX2)
+```
+
+Next, we will calculate the area (km^2^) excluded by climate stresses and the area where FCM was predicted to complete at least one generation. The `freq()` function in `terra` will give the count of cells for each integer value in the map. All results are multiplied by `16` to approximate the area (one cell = ~16 km^2^)
+
+```{r, eval=FALSE}
+# Area of each raster cell is ca. 16 km2
+cell_size <- 16
+
+# Total area excluded by cold stress
+area_excl_sev <- freq(allEXCL,1,-1)
+area_excl_mod <- freq(allEXCL,1,-2)
+area_not_excl <- freq(allEXCL,1, 0)
+
+# Total area in exclusion zones (both climate stresses)
+excl_CS <- coldEXCL < 0
+area_excl_CS <- freq(excl_CS,1,1)
+excl_HS <- heatEXCL < 0
+area_excl_HS <- freq(excl_HS,1,1)
+
+# Total area where at least 1 generation completes over the year
+area_NumGen <- freq(NumGen,1)
+area_NumGen_Gt1 <- area_NumGen %>%
+  filter(value > 0) %>%
+  summarize(count = sum(count))
+  
+# Combine results 
+areas_all <- data.frame(
+  "type" = c("all_excl_sev", "all_excl_mod", "not_excl", "CS_excl", "HS_excl", "Gt1_gen"),
+  "area" = c(area_excl_sev$count, area_excl_mod$count, area_not_excl$count, area_excl_CS$count,
+             area_excl_HS$count,area_NumGen_Gt1$count) * cell_size,
+  "cs_thres" = rep(c(coldstress_threshold), 6),
+  "csu_max1" = rep(c(coldstress_units_max1), 6))
+
+# Save the results
+# Document 
+fl_name <- paste0(spp, "_areas_", yr, ".csv")
+write.csv(areas_all, paste0(output_dir, "/", fl_name), row.names = FALSE)
+```
+
+#### **Exercise 1: Modeling Voltinism and Climate Suitability for FCM**
+
+**(3)** For your run for `2011`, describe **AND** interpret any relationships that you see between:      
+(a) climate stress accumulations and areas excluded by climate stresses.  
+(b) climate stress accumulations and degree-day accumulations.   
+(c) degree-day accumulations and voltinism (number of generations per year). (3 pts)
+
+*Response*: 
+
+
+**(4)** Run the model for `2016`, and then compare and contrast maps and tables to those for `2011`. Change the `yr` (year) value in the Model Settings. You can import the tables using the `read.csv()` function, or simply open the file via the "Files/Plots/etc." pane in RStudio. Then answer these questions:  
+(a) Report total areas excluded by cold and stresses for each year. In which year did FCM experience greater range-limiting climate stresses overall?    
+(b) Which areas were excluded by climate stresses in both years?  
+(c) Why is there variation in climate stress exclusions and voltinism among years? (3 pts)
+
+*Response*:
+
+
+**(5)** Compare your model outputs for FCM with those at USPest.org. Your results should be similar, but not identical, because you're using climate data for different years and the above DDRP code may be slightly different. Also, this lab doesn't integrate phenology and climate suitability maps since this requires more code complexity. The maps at the link below depict FCM's voltinism and potential distribution (areas not excluded by cold and heat stress). The third map integrates the first maps.  
+https://uspest.org/CAPS/FCM_cohorts/FCM_NumGen_20251231.png  
+https://uspest.org/CAPS/FCM_cohorts/FCM_All_Stress_Excl_20251231.png  
+https://uspest.org/CAPS/FCM_cohorts/FCM_NumGen_Excl2_20251231.png  
+
+Describe at least two differences between your model outputs and those above, and what might explain any differences. (2 pts)
+
+*Response*: 
+
+
+**(6)** What are some potential applications of producing **near real-time** forecasts of phenology and climate suitability for FCM and other invasive pests? (1 pt)
+
+*Response*: 
+
+
+
+**(7)** Based on estimations of the potential distribution and voltinism for FCM for three different years, where might you prioritize efforts for surveillance of this invasive pest? Why? (2 pts)
+
+*Response*:
+
+
+
+#### **Exercise 2: Sensitivity Analysis for FCM Model Parameters** 
+
+We will conduct a sensitivity analysis to evaluate the impact of variation in the cold stress threshold (`coldstress_threshold`) and moderate cold stress limit (`coldstress_units_max1`) on the total area excluded by cold stress, which represents the potential distribution of FCM. Areas excluded by moderate cold stress may represent zones of "uncertainty" - i.e., we're not sure if the species can establish in those areas or not. 
+
+**IMPORTANT NOTE:** This is a perturbation analysis, so remember to change only one parameter at a time while keeping all other parameter values and climate inputs constant.
+
+For simplicity, we will only test two additional values for each parameter. Results were already produced for the `coldstress_threshold`. You need to run the analysis using the two `coldsress_units_max1` values. Remember to change the output directory name appropriately. See the comments below.
+
+```{r}
+# Use climate data for 2016
+yr <- 2016
+
+## ***This part is already DONE***
+# Cold stress threshold - default is 0
+# Test -0.4C and -0.8C (-40%)
+# Leave all other parameters default
+# Output dir: cs_thres_neg0.4C
+# coldstress_threshold <- -0.4 # value 1
+# Output dir: cs_thres_neg0.8
+# coldstress_threshold <- -0.8 # value 2
+
+## **YOU NEED TO DO** - change the modeling settings above
+# "cold_stress_max1" sensitivity tests: default is 35
+# Test 49 and 63 units (+40%)
+# See commented code above for these parameters
+```
+
+After completing the model runs, import the CSV files that contain area estimates. All CSV files are found by searching a pattern, and then stored in a list by applying the `read.csv()` function. 
+```{r}
+# Import outputs
+csv_fls <- list.files(here("Lab4_SDMs_process_based", "outputs", "FCM", "2016"), 
+                      pattern = ".csv$", recursive = TRUE, full.names = TRUE)
+
+# Name files by the subfolder name
+# Count number of "/" in path name
+# "str_split_fixed" splits up strings by a character (e.g., "/")
+num_splits <- str_count(csv_fls[1], "/")
+fl_nams <- str_split_fixed(csv_fls, "[/]", num_splits + 1)[,num_splits]
+
+# Apply "read.csv()" to import data from all files
+# Name the files using the previously defined names
+all_areas_list <- lapply(csv_fls, read.csv)
+names(all_areas_list) <- fl_nams
+str(all_areas_list)
+```
+
+Now we'll combine all data in the list using the `bind_rows()` function in `dplyr` and then subset results produced using default parameters to get the initial model output value (i.e., area not excluded by climate stress). Note: I added `1` to cold stress threshold values because the equation below won't work when `0` is the denominator.
+
+```{r}
+# Area excluded by cold stress increases as cold_stress_threshold increases (decreasing potential distribution)
+# Make data frame from list, subset results for area (km2) excluded by cold stress
+all_areas_dfs <- bind_rows(all_areas_list, .id = "param") %>%
+  filter(type == "not_excl") %>%
+  mutate(cs_thres = (cs_thres + 1))
+
+# Get default results (coldstress_threshold = 0, coldstress_units_max1 = 35)
+# Output (area not excluded by cold stress) is used in below equations
+# Area not excluded = 16544
+default_not_excl <- all_areas_dfs %>%
+  filter(param == "default")
+default_not_excl
+```
+
+Finally, we'll use the equation of Essington (2021) to estimate the proportional change in the model output to the proportional change in each model parameter value. I have already produced results for the cold stress threshold (`coldstress_threshold`). You need to run the model after changing moderate cold stress limits (`coldstress_units_max1`). Follow the instructions in the comments below.
+
+```{r, echo=FALSE, fig.cap ="Source: Essington 2021, Ch. 15.2.1"}
+knitr::include_graphics(here("Lab4_SDMs_process_based", "images", "Essington_15.5.png"))
+```
+
+```{r}
+# Calculate proportional change in area not excluded for each model output
+# I added 1 to the cold stress threshold values because dividing by 0 results in infinity
+# Areas not excluded by climate stress should increase as cold stress threshold decreases
+sens_cs_thres <- all_areas_dfs %>%
+   filter(grepl("thres", param)) %>%
+   mutate(chng_output = (area - 16544) / 16544,
+          chng_param = (cs_thres - 1) / 1) %>%
+   mutate(prop_chng = chng_output/chng_param)
+sens_cs_thres
+
+# RUN THE MODEL using "coldstress_units_max1" = 49 and 63 (coldstress_threshold = 0)
+# Then uncomment the code block below
+# Area not excluded by climate stress should increase as max1 increases
+sens_csu_max1 <- all_areas_dfs %>%
+   filter(grepl("max1", param)) %>%
+   mutate(chng_output = (area - 16544) / 16544,
+          chng_param = (csu_max1 - 35) / 35) %>%
+   mutate(prop_chng = chng_output/chng_param)
+sens_csu_max1
+
+# Combine the results 
+sens_all <- bind_rows(sens_cs_thres, sens_csu_max1)
+sens_all
+```
+
+**(8)** Interpret the results of the perturbation analyses. Specifically, how did similar increases to parameter value affect changes in the area not excluded by climate stress (i.e., the potential distribution)? Which parameter (`coldstress_threshold` vs. `coldtress_units_max1`) does the output appear to be more sensitive to? (3 pts)
+
+*Response*: 
+
+
+**(9)** Repeat the analysis above but for heat stress. Pick some reasonable values to test for the heat stress threshold and heat stress limits and create output folders to store the results. Next, answer the question below. (4 pts)
+
+```{r}
+# Heat stress threshold (test 2 values - make sure increments are the same)
+
+# Heat stress limits (test 2 values - make sure increments are the same)
+
+```
+
+Which parameter does the output appear to more sensitive too? Was this result similar to that of the sensitivity analysis for cold stress parameters?
+
+*Response*: 
+
+
+#### **Exercise 3: Modeling Additional Species** 
+
+Pick a different species and run the DDRP model. Follow these instructions:  
+  (a) Go to https://uspest.org/CAPS.  
+  (b) Pick one of the 15 species at this website (not FCM).    
+  (c) Find the model parameters in the `metadata.txt` file in the `Logs_metadata` subdirectory.  
+  (d) Create a folder with the species abbreviation in the `output` folder for this lab.  
+  (e) Find the corresponding values for: species abbrev, species name, thresholds, DD requirements, and climate suitability parameter values in the file and change them in the appropriate code chunk above.    
+  (f) Run the model using climate data for `2011` and `2016`.  
+
+
+**(10)** Compare the model outputs for your chosen species to those produced for FCM for the same years. (4 pts)
+
+In your answer, describe how:  
+(a) differences in their climate stress parameter values may explain differences in their potential distribution.  
+(b) differences in their lower developmental threshold and degree-day requirements may explain differences in voltinism.  
+(c) whether their changes in the voltinism and the potential distribution exhibited similar shifts between `2011` and `2016`.    
+
+*Response*: 
+
+
+**(11)** Describe at least one limitation of the DDRP modeling approach **AND** what you might change to address this limitation. For example, this might include adding additional climate factors, modifying the model structure, or something else. (2 pts)
+
+*Response*: 
+
+
+**(12)** Discuss your overall results from the species distribution modeling exercises. Rather than repeating specific results, review the most important things that you learned from the lab. (4 pts)  
+
+*Response*:
+

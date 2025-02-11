@@ -499,7 +499,9 @@ confusionMatrix(bagworm_df3$predicted_c, bagworm_df3$observed_c, positive = "1")
 **(13)** Describe how the accuracy, sensitivity, and specificity values in the confusion matrix results were calculated. Why was model sensitivity lower than model specificity? (4 pts)
 
 *Response*: 
+
  
+**(14)** In the code chunk below, subset the data to only keep rows in which caterpillars were observed. Next, record which site these data belong to, and look at the values in `observed_c` and `predicted_c` columns. How might changing the DD criteria for the caterpillar phenophase (`600` < DDs < `900`) change our confusion matrix results? (note: you don't need to re-run the analysis - just think about the consequences of our phenophase critera on the results). (3 pts)
 
 
 ```{r}

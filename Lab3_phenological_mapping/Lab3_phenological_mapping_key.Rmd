@@ -557,7 +557,7 @@ Model sensitivity = TP/(TP+FN) = 3/(3+12) = 0.20
 
 Model sensitivity was lower because there was a low number of true positive values (3) compared to false negative values (12). Sensitivity decreases as the number of false negatives increases. 
 
-**(14)** In the code chunk below, subset the data to only keep rows in which caterpillars were observed. Next, record which site these data belong to, and look at the values in `observed_c` and `predicted_c` columns. How might changing the DD requirements used to determine whether bagworms are in the caterpillar phenophase (`600` < DDs < `900`) change our confusion matrix results? (note: you don't need to re-run the analysis - just think about the consequences of our phenophase critera on the results). (3 pts)
+**(14)** In the code chunk below, subset the data to only keep rows in which caterpillars were observed. Next, record which site these data belong to, and look at the values in `observed_c` and `predicted_c` columns. How might changing the DD criteria for the caterpillar phenophase (`600` < DDs < `900`) change our confusion matrix results? (note: you don't need to re-run the analysis - just think about the consequences of our phenophase critera on the results). (3 pts)
 
 ```{r}
 # Data come from site 52155
