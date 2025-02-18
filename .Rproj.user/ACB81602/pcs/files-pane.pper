@@ -2,8 +2,8 @@
     "sortOrder": [
         {
             "columnIndex": 2,
-            "ascending": true
+            "ascending": false
         }
     ],
-    "path": "~/Teaching/HORT499.599/Wint25/Labs/Lab4_SDMs_process_based/outputs/FCM/2016/csu_max1_49"
+    "path": "~/Teaching/HORT499.599/Wint25/Labs/Lab5_SDMs_correlative"
 }
