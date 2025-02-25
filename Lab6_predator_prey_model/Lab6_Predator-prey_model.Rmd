@@ -1,6 +1,6 @@
 ---
 author: "Your name"
-title: "Lab 7: Predator-prey models"
+title: "Lab 6: Predator-prey models"
 date: "`r format(Sys.Date(), tz = 'America/Los_Angeles')`"
 output:
   html_document: default
@@ -21,12 +21,11 @@ library(patchwork) # Arrange multiple plots on 1 page
 - Develop a discrete-time population dynamics model  
 - Define the purpose and the parameters in a Nicholson-Bailey model  
 - Describe how model assumptions can lead to unstable host/parasitoid population dynamics  
-- Provide examples of some stabilizing factors in predator-prey or host-parasitoid interactions and how they allow prey/host population to persist in the long-term  
-
+- Provide examples of some stabilizing factors in predator-prey or host-parasitoid interactions and explain how they allow prey/host population to persist in the long-term  
 
 ### **Grading Rubric**
 
-Most of your grade will be for effort - i.e., that you did your best to follow instructions and to answer questions. Each lab is worth 30 pts, so divide this number by the total number of questions to estimate the approximate number of points per question. Points may be deducted for errors in code, not following instructions, or answering questions incorrectly. 
+Most of your grade will be for effort - i.e., that you did your best to follow instructions and to answer questions. The lab is worth 30 pts. Points may be deducted for errors in code, not following instructions, or answering questions incorrectly or incompletely. 
 
 ### **Instructions**
 
@@ -37,13 +36,13 @@ There are a set of questions associated with each exercise below that you must c
 In the 1930s, Nicholson and Bailey proposed a simple discrete-time model to simulate the population dynamics of insect hosts and their parasitoids. Parasitoids are insects that lay their eggs on a host, eventually killing it as larvae develop. Parasitoidism is a type parasitism, but the fatal prognosis for the host makes the strategy close to predation. Most parasitoids are wasps, but some flies and a small number of beetles, moths, lacewings, and even one caddisfly species have evolved to be parasitoids. It is estimated that ca. 10% of insect species (mostly *Hymenoptera* wasps and *Diptera* flies) are parasitoids! The pictures below shows a braconid wasp attacking a spongy moth (*Lymanatria dispar*) caterpillar. Interestingly, braconid wasps inject caterpillars with a virus known as a bracoviruses, which suppresses the caterpillar's immune system to favor growth of their progeny. Parasitoids are frequently used as natural enemies in the biological control of insect pests, where the goal is often to establish a long-term, persistent pest-parasitoid interaction to suppress pest densities to an economically tolerable threshold. Much of the theory on host–parasitoid interactions, therefore, has focused on determining what mechanisms can lead to a stable equilibrium with a low host density.
 
 ```{r, echo=FALSE, outwidth = "400px", fig.cap="Credit: USDA/Wikimedia"}
-knitr::include_graphics(here("Lab7_predator_prey_model", "images", "braconid_wasp.png"))
+knitr::include_graphics(here("Lab6_predator_prey_model", "images", "braconid_wasp.png"))
 ```
 
 The figure below shows a generalized diagram of a parasitoid wasp life cycle. In the figure, the adult female injects virus particles along with the eggs during parasitization. Different species will differ in regards to the number of eggs laid and whether they lay eggs on the host or inject a single egg into the host.
 
 ```{r, echo=FALSE, out.width = "50%", fig.cap="Credit: Volkoff and Cusson (2020) https://doi.org/10.3390/v12101170"}
-knitr::include_graphics(here("Lab7_predator_prey_model", "images", "parasitoid_wasp_life_cycle.png"))
+knitr::include_graphics(here("Lab6_predator_prey_model", "images", "parasitoid_wasp_life_cycle.png"))
 ```
 
 ### **The Nicholson-Bailey Model**
@@ -89,16 +88,16 @@ A host-parasitoid equilibrium exists ($H > 0$, $P > 0$) whenever $R > 1$, i.e., 
 #### **(1) Model Function**
 
 Below we create our own function that contains code to model host ($H_t$) and parasitoid ($P_t$) densities over time using the simple Nicholson-Bailey model. Four arguments are passed to the function:    
-1) `time` $t$ (number of years)  
+1)  time $t$ (number of years)  
 2)  initial values for $R$ (host net reproductive rate)  
-3)  $c$ (number of new parasitoids), and 
+3)  $c$ (number of new parasitoids), and  
 4)  $a$ (parasitoid searching efficiency)  
 
-After defining equations to calculate $H$ and $P$, a data frame with three columns (`nb_out_all`) is created to hold model outputs. The first row is for year 0 (`Time = 0`), which is calculated using the initial values. A `for` loop iterates over each year in `time` and calculates $H$ and $P$. These results are added to the `nb_out_all` data frame as a new row. Finally, an if-else statements is used to round up to the nearest integer using `ceiling()` to avoid having fractions of individuals. 
+After defining equations to calculate $H$ and $P$, a data frame with three columns (`nb_out_all`) is created to hold model outputs. The first row is for year 0 (`Time = 0`), which is calculated using the initial values. A `for` loop iterates over each year in `time` and calculates $H$ and $P$. These results are added to the `nb_out_all` data frame as a new row. Finally, an if-else statement is used to round up to the nearest integer using `ceiling()` to avoid having fractions of individuals. 
 
 ```{r}
 # Simple Nicholson-Bailey model
-# Agurments are # of time steps, pop growth rate, search efficiency, and search area.
+# Arguments are # of time steps, pop growth rate, number of new parasitoids, and searching efficiency
 NB_model <- function(time, R, c, a) {
   
   # Equations
@@ -137,18 +136,20 @@ R <- 2 # Reproductive rate (number of surviving host offspring)
 time <- 30 # No. of generations (years)
 
 # Run the model
-nb_model_df1 <- NB_model(time = time, R = R, c = c, a = a)
+nb_model_df1 <- NB_model(time, R, c, a)
 ```
 
-The `nb_model_df1` data frame contains host and parasitoid outputs for each year.
+In the code chunk below, take a look at the `nb_model_df1` data frame. 
 ```{r}
 # View the first several rows of the output
-head(nb_model_df1)
+
 ```
 
 Two plotting functions that use the `ggplot2` package are used to view the results. Populations densities can be plotted against time (state space) as well as against one another (phase space). The first function plots densities against time (`Plot_DensVTime`). Prior to plotting, the model outputs are transformed using the [`pivot_longer()`](https://tidyr.tidyverse.org/reference/pivot_longer.html) function of the [`tidyr`](https://tidyr.tidyverse.org/) package to create a single column named `Density` that combines the `H` and `P` columns. 
 
 #### **(2) Function to Plot Densities vs. Time**
+
+The `Plot_DensVTime()` function creates a plot of densities (host and parasitoid) vs. time.
 
 ```{r}
 # Function to plot densities against time
@@ -186,6 +187,8 @@ Plot_DensVTime <- function(model_out, plot_title) {
 
 #### **(3) Function to Plot Host vs. Parasitoid Densities**
 
+The `Plot_DensVDens()` function creates a phase diagram (host vs. parasitoid density).
+
 ```{r}
 # Function to plot densities against each other 
 Plot_DensVDens <- function(model_out, plot_title) {
@@ -210,7 +213,7 @@ Plot_DensVDens <- function(model_out, plot_title) {
 }
 ```
 
-A plot depicting the dynamics of host and parasitoid densities over time demonstrates how the simple Nicholson-Bailey model leads to mutual extinction of host and parasitoid. Realistically, there shouldn't even be a second peak in the plot because densities drop to 0 at year 3 (host) or year 4 (parasitoid). 
+A plot depicting the dynamics of host and parasitoid densities over time demonstrates how the simple Nicholson-Bailey model leads to mutual extinction of host and parasitoid. 
 
 ```{r, fig.width=5, fig.height=4}
 # Time vs. density plot with informative plot title
@@ -219,7 +222,7 @@ plot_densVtime1 <- Plot_DensVTime(nb_model_df1, plot_title1)
 plot_densVtime1
 ```
 
-Plotting host vs. parasitoid densities reveals how the trajectory spirals outwards until the population crashes.
+Plotting host vs. parasitoid densities (phase diagram) reveals how the trajectory spirals outwards until the population crashes.
 
 ```{r, fig.width=5, fig.height=4}
 # Phase diagram
@@ -227,11 +230,16 @@ plot_densVdens1 <- Plot_DensVDens(nb_model_df1, plot_title1)
 plot_densVdens1
 ```
 
+**(1)** What is unrealistic about the model output with respect to densities over time? (1 pt)
+
+*Response*: 
+
+
 ### **Exercise 1: The Simple Nicholson-Bailey model**
 
 #### **Simple Model**
 
-**(1)** In the code chunk below, run the model using starting conditions that reflect a situation in which a parasitoid oviposits one egg per host, has a searching efficiency of 75%, and a reproductive rate of `2`. Run the model for `30` generations (years). Create plots of the model output (i.e., using the `Plot_DensVTime` and `Plot_DensVDens` functions). Make sure to create a new plot title.
+**(2)** In the code chunk below, run the model using starting conditions that reflect a situation in which a parasitoid oviposits one egg per host, has a searching efficiency of 75%, and a reproductive rate of `2`. Run the model for `30` generations. Create plots of the model output (i.e., using the `Plot_DensVTime` and `Plot_DensVDens` functions). Make sure to create a new plot title. (2 pts) 
 
 ```{r}
 # Initial conditions
@@ -245,10 +253,9 @@ plot_densVdens1
 
 # Plot the results 
 # Can name plots `plot_densVtime2` and `plot_densVdens2`, and plot title `plot_title2`
-
 ```
 
-**(2)** Use the same parameters as before except change the searching efficiency to 5%, and then answer the question below.
+**(3)** Use the same parameters as before except change the searching efficiency to 5%, and then answer the question below. (3 pts)
 
 ```{r}
 # Initial conditions
@@ -258,15 +265,14 @@ plot_densVdens1
 
 # Plot the results 
 # Can name the plots `plot_densVtime3` and `plot_densVdens3`, and plot title `plot_title3`
-
 ```
 
 What was the main effect of changing the parasitoid searching efficiency, and why?
 
-*Response:*
+*Response:* 
 
 
-**(3)** Repeat this process for the other two parameters, reproductive rate (`R`) and number of hatched parasitoids (`c`), but choose your own values this time. See the comments below for naming conventions (avoids confusion later). Then answer the question below.
+**(4)** Repeat this process for the other two parameters, reproductive rate (`R`) and number of hatched parasitoids (`c`), but choose your own values this time. See the comments below for naming conventions (avoids confusion later). Then answer the question below. (3 pts)
 
 ```{r}
 # Initial conditions
@@ -287,9 +293,9 @@ What was the main effect of changing each of the parameters, and why?
 *Response:*
 
 
-**(4)** Why does the simple Nicholson-Bailey model show unstable oscillations and eventually lead to mutual population extinction?
+**(5)** Why does the simple Nicholson-Bailey model show unstable oscillations and eventually lead to mutual population extinction? (2 pts) 
 
-*Response:*
+*Response:* 
 
 
 ### **Exercise 2: Adding Host Density Dependence**
@@ -304,9 +310,15 @@ which can be simplified to
 $$H_{t+1} = H_te^{r-aP_t}$$
 $$P_{t+1} = cH_t(1 - e^{-aP_t})$$
 
+
 The addition of density-dependence can be achieved by replacing $R$ with $r - rH/K$, where $K$ is the host carrying capacity
 $$H_{t+1} = H_te^{r-rH/K-aP_t}$$
+
 $$P_{t+1} = cH_t(1 - e^{-aP_t})$$
+
+Easier method: The addition of density-dependence can be achieved using the following equation, where $K$ is the host carrying capacity
+
+$$H_{t+1} = RH_te^{[(1 - H_t/K)-aP_t]}$$
 
 In the empty code chunk below, create a Nicholson-Bailey model that includes host density dependence and name it `NB_model_K`. It will probably be easiest to just copy and paste the `NB_model` function from above and change the equations for calculating $H$ and $P$. Hint: your new equation for $H$ should include a carrying capacity, $K$, parameter, and you will now have `K` as a fifth argument for the function. 
 
@@ -315,7 +327,7 @@ In the empty code chunk below, create a Nicholson-Bailey model that includes hos
 
 ```
 
-**(5)** In the empty code chunk below, run your model and use the two plotting functions to create plots of model outputs. Use the below initial values for this question and the next. 
+**(6)** In the empty code chunk below, run your model and use the two plotting functions to create plots of model outputs. Use the below initial values for this question and the next. The plot title should now have the `K` parameter (see below comment). (3 pts)
 
 ```{r}
 # Initial conditions
@@ -380,24 +392,24 @@ ParamRunner <- function(param, values) {
   
   # Save the final plot as a .PNG file
   outfile <- paste0("NB_vary_", param, "_plot.png")
-  ggsave(allPlots, filename = here("Lab7_predator_prey_model", "plots", outfile),
+  ggsave(allPlots, filename = here("Lab6_predator_prey_model", "plots", outfile),
         height = 15, width = 15, units = c('in'), device = "png", dpi = 150)
 }
 ```
 
-**(6)** Explore how densities of the host and parasitoid change over time when changing:    
+**(7)** Explore how densities of the host and parasitoid change over time when changing: (5 pts)   
 (1) the host reproductive rate ($R$, number of surviving host offspring)  
 (2) the number of parasitoids that emerge from an infected host ($c$)  
 (3) the search area of female parasitoids ($a$)  
 (4) the host carrying capacity ($K$)  
 
-For each test, use 6 different values for one parameter while keeping all other parameters at the initial values in the code chunk below. If no change is observed, try using a larger range of values for the variable parameter.
+For each test, use 6 different values for one parameter while keeping all other parameters at the initial values in the code chunk below. If no change is observed, try using a larger range of values for the variable parameter. 
 
 Below is an example of what your code might look like **after** you have created a functioning model (`nb_model_K`). In the example, we iterate through a sequence of $R$ values created using the `seq()` function, and then implement the `ParamRunner()` function to run the model and create a combo plot of results.
 
-**(6a)** Varying $R$. 
+**(7a)** Varying $R$. 
 
-```{r, eval=FALSE}
+```{r}
 # Initial conditions
 c <- 3 # No. of parasitoids that hatch from infected host
 a <- 0.001 # Searching efficiency of female parasitoid 
@@ -413,7 +425,7 @@ R_values <- seq(from = 1.3, to = 2.8, by = 0.3)
 ParamRunner(param = "R", values = R_values)
 ```
 
-**(6b)** Varying $c$.
+**(7b)** Varying $c$.
 
 ```{r}
 # Changing number of eggs per host, c
@@ -425,7 +437,7 @@ ParamRunner(param = "R", values = R_values)
 
 ```
 
-**(6c)** Varying $a$. 
+**(7c)** Varying $a$. 
 
 ```{r}
 # Changing search efficinecy parameter "a"
@@ -436,7 +448,7 @@ ParamRunner(param = "R", values = R_values)
 
 ```
 
-**(6d)** Varying $K$. 
+**(7d)** Varying $K$. 
 
 ```{r}
 # Changing K (host density dependence)
@@ -450,21 +462,26 @@ ParamRunner(param = "R", values = R_values)
 Examples of plots for each run are in the `example_plots` folder. Your plots will probably look different since you're choosing your own parameter values.
 
 
-**(7)** Summarize how variation in each of the 4 parameters ($R$, $c$, $a$, and $K$) affects how host and parasitoid densities change over time. Keep in mind that y-axis limits may differ across the plots produced for each parameter value. 
+**(8)** Summarize how variation in each of the 4 parameters ($R$, $c$, $a$, and $K$) affects how host and parasitoid densities change over time. Keep in mind that y-axis limits may differ across the plots produced for each parameter value. (3 pts) 
 
 *Response*: 
 
 
-**(8)** Does your modified Nicholson-Bailey model still show unstable oscillations and eventually lead to mutual population extinction? Did some parameter combinations result in greater stability? Explain. 
+**(9)** Compare the plots of host vs. parasitoid densities (phase diagram) across runs. How can you tell which parameters resulted in more stable population dynamics? (1.5 pts)
+
+*Response*:
+
+
+**(10)** Does your modified Nicholson-Bailey model still show unstable oscillations and eventually lead to mutual population extinction? Did some parameter combinations result in greater stability? Explain. (2 pts)
 
 *Response*: 
 
 
-**(9)** Which factor would you add next to stabilize the model and why?
+**(11)** Which factor would you add next to stabilize the model and why? (1.5 pts)
 
 *Response*: 
 
 
-**(10)** Discuss your overall results from the Nicholson-Bailey model simulations. In your response, describe some potential applications of the model, such as for biological control programs of insect pests. What qualities would you look for in the parasitoid?
+**(12)** Discuss your overall results from the Nicholson-Bailey model simulations. In your response, describe some potential applications of the model, such as for biological control programs of insect pests. What qualities would you look for in the parasitoid? (4 pts)
 
 *Response*:
