@@ -233,7 +233,7 @@ ggplot() +
 
 **(3)** Interpret the GLM model predictions in relation to presence-absence locations. Where is the probability of presence highest vs. lowest? Why do you think the hooded warbler might be absent from certain areas where the probability of presence is high? (3 pts)
 
-*Response*: 
+*Response*: The GLM climate suitability model predicted the highest probability of occurrence in the southeastern U.S., particularly in states surrounding the Gulf of Mexico (FL, AL, MI,and TX), and in parts of OK, KS, MI, TN, and KY. Presence locations in the warbler datasets tend to be concentrated in those same areas. However, a high probability occurrence was predicted across coastal areas of the Pacific ocean in Canada and AK, where the warbler is absent. This absence may be due to dispersal barriers such as the Rocky Mountains, biological factors (e.g., competition or flight limitations). Probability of occurrence was lower in most areas where the warbler was absent according to survey data.
 
 
 Sometimes we want to identify locations where we expect the species to occur, rather than visualizing a range of probabilities. To do this, we need a threshold for transforming predictions to a binary score (presence vs. absence). A threshold of `0.5` is often used; however, this value may only work well when the data has an even number of presences and absences. Other methods to identify appropriate thresholds are described in the next section.
@@ -297,7 +297,7 @@ plot(evaluation, 'ROC')
 
 **(5)** Interpret the ROC curve. How do you know that your model performs better than random? What does the AUC value tell you? Be specific. (3 pts)
 
-*Response*: 
+*Response*: The AUC provides a single measure of predictive performance across a range of thresholds to delineate presence vs. absence. The AUC value lies between 0.5 to 1 where 0.5 denotes a bad classifier and 1 denotes an excellent classifier. The AUC for the warbler model was 0.882, which isn't perfect but still very good (it performs better than random).
 
 
 #### **Automatically Choosing Thresholds**
@@ -335,7 +335,7 @@ binary_map2
 
 Which areas were included vs. excluded when using the different thresholds? Why is the automatically chosen threshold likely to be more appropriate for the hooded warbler dataset? 
 
-*Response*: 
+*Response*: More areas were excluded from the warbler distribution when a threshold of 0.5 compared to the automatically chosen (equal prevalence) threshold, indicating potential omission errors (underpredictions). For example, the 0.5 threshold method excluded all northeastern states and several southeastern states (NC, SC, GA) where warblers were recorded in surveys. In contrast, the equal prevalence threshold included all states where the warbler was recorded but also included areas where it wasn't recorded, such as parts of the Midwest (e.g., NE, SD, IL, IN). These are potential commission errors (overpredictions). The equal prevalence threshold is likely more appropriate, at least if the goal is to make sure that all areas with the potential for warbler presence are surveyed. However, it may lead to wasted resources if surveys occur in areas where they're absent.
 
 
 #### **Project the Model to Future Climates**
@@ -401,7 +401,7 @@ SDM_differences
 
 How is hooded warbler presence predicted to change under future climates? What are some potential explanations to explain increasing vs. decreasing probabilities of presence?
 
-*Response*: 
+*Response*: Areas with a high probability of occurrence shift both westward and northward. A band that moves from eastern TX to IA has the highest probabilities, as well as parts of NC and VA. Conversely, areas of the southeastern U.S. that previously had a high probability of occurrence became less suitable. The most likely explanation for these changes is that minimum temperature (tmin) increased. It's also possible that precipitation regimes changed. 
 
 
 #### **Identifying Areas With Extrapolation Errors**
@@ -455,17 +455,34 @@ error_plot
 
 **(8)** Where did model extrapolation errors occur according to the MESS analysis? What might be the consequence of interpreting model predictions for these areas? (2 pts)
 
-*Response*: 
-
+*Response*: Extrapolation errors occurred in southern TX, northern MX, southern FL and surrounding islands, and some small areas in the Arctic. Interpreting predictions in areas with extrapolation errors is not recommended because they could be unreliable (model uncertainty). They occur because the tmin or precip values are outside of the range of values used for model fitting. 
 
 
 **(9)** Describe at least 3 major differences between correlative SDM and process-based SDM approaches, making sure to point out if these differences have advantages and/or disadvantages. (3 pts)
 
-*Response*:
+*Response*: 
 
+Correlative models
+Advantages:
+- Exploits more commonly available data
+- Applicable to a wider range of organisms
+- Provides a simple output indirectly representing many different processes
+Disadvantages:
+- Unable to incorporate key variables that influence distribution
+- Violates model assumptions in novel environments
+- Don’t provide a causal explanation for predictions
+
+Process-based models
+Advantages:
+- Can be applied when occurrence data are limited or in non-equilibrium/novel circumstances
+- Provides mechanistic understanding of underlying processes
+- Often more precise
+Disadvantages:
+- Data only available for well-studied organisms
+- Uncertainty regarding what traits to include in model
 
 
 **(10)** Discuss your overall results from this lab exercise. In your response, note at least two key differences in how the mechanics of this model differed to the process-based model used for Lab 4. (4 pts)
 
-*Response*:
+*Response*: Answer varies but should address at least two differences. The previous lab used a process-based model wherein the potential distribution was delineated as areas where cold and heat stress units had exceeded two different stress limits. Thus, it considered biological attributes of the organisms, whereas the correlative model is based only on statistical associations between predictor variables and presence/absence locations. Other differences may be noted as well, but this one is key.
 

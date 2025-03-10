@@ -402,6 +402,12 @@ write.csv(areas_all, paste0(output_dir, "/", fl_name), row.names = FALSE)
 
 *Response*:
 
+(a) FCM experienced greater cold stress in 2011 (99,232 sq km) than in 2016 (93,536 sq km), resulting in greater cold stress exclusions. FCM experiened slighly higher heat stress in 2016  (6,032 sq km) than 2011 (5,936 sq km) but the general range of this exclusion is almost identical between years. 
+ 
+(b) Most of the area east of the Sierra Nevada and the Cascade Range, and in the vicinity of Mt. Shasta in northern California was excluded in both years. West of the Cascade Range in Washington and Oregon and away from the immediate coast are moderate exclusion areas (cold stress) in both years. This suggests that the maritime climate could be important in mediating high and low range-limiting temperatures for this species. 
+
+(c) Inter-annual variations in temperatures explain the differences. For example, colder than usual years such as 2011 results in more areas excluded by cold stress and lower degree day accumulation because of cooler average temperatures. Inter-annual climate variation is influenced primarily by oceanic circulation and atmospheric circulation patterns and cycles causing variation in temperature extremes and averages.
+ 
 
 **(5)** Compare your model outputs for FCM with those at USPest.org. Your results should be similar, but not identical, because you're using climate data for different years and the above DDRP code may be slightly different. Also, this lab doesn't integrate phenology and climate suitability maps since this requires more code complexity. The maps at the link below depict FCM's voltinism and potential distribution (areas not excluded by cold and heat stress). The third map integrates the first maps.  
 https://uspest.org/CAPS/FCM_cohorts/FCM_NumGen_20251231.png  
@@ -415,14 +421,12 @@ Describe at least two differences between your model outputs and those above, an
 
 **(6)** What are some potential applications of producing **near real-time** forecasts of phenology and climate suitability for FCM and other invasive pests? (1 pt)
 
-*Response*: 
-
+*Response*: Near real time forecasts of phenology can help with timing of treatments (or other management tactics), potentially making management more effective and economical. In addition, these near real time forecasts could help monitoring in areas where the climate is suitable but the pest has yet to be detected. 
 
 
 **(7)** Based on estimations of the potential distribution and voltinism for FCM for three different years, where might you prioritize efforts for surveillance of this invasive pest? Why? (2 pts)
 
-*Response*:
-
+*Response*: Area where FCM is not excluded by moderate or severe climate stress across all modeled years should be the priority for surveillance because these areas have the highest probability of long-term establishment. Someone might also want to focus on areas where the life cycle will complete (enough degree days to complete a generation) because this will also be important for persistence.
 
 
 #### **Exercise 2: Sensitivity Analysis for FCM Model Parameters** 
@@ -524,6 +528,9 @@ sens_all
 
 *Response*: 
 
+The model is more sensitive to changes in the maximum cold stress units cold than the cold stress threshold, although only by a third of a change from the default. Essington index takes into account the change in model output relative to the difference in model input, so the larger increase in cold stress units relative to the increase in the threshold is accounted for in the proportion.
+
+Decreases in the coldstress_threshold increase the amount of area excluded (from the default value - 16,544 sq km), but the relationship is inversely proportional so the proportion is negative. Increases in the cold stress maximum units increase the area excluded.
 
 **(9)** Repeat the analysis above but for heat stress. Pick some reasonable values to test for the heat stress threshold and heat stress limits and create output folders to store the results. Next, answer the question below. (4 pts)
 
@@ -557,15 +564,15 @@ In your answer, describe how:
 (b) differences in their lower developmental threshold and degree-day requirements may explain differences in voltinism.  
 (c) whether their changes in the voltinism and the potential distribution exhibited similar shifts between `2011` and `2016`.    
 
-*Response*: 
+*Response*: Answers will vary depending on which species they picked.
 
 
 **(11)** Describe at least one limitation of the DDRP modeling approach **AND** what you might change to address this limitation. For example, this might include adding additional climate factors, modifying the model structure, or something else. (2 pts)
 
-*Response*: 
+*Response*: Potential answers might include: it's based only on temperature (e.g., plants are heavily influenced by moisture), and it doesn't consider host plants or other biotic factors. Other answers may be acceptable.
 
 
 **(12)** Discuss your overall results from the species distribution modeling exercises. Rather than repeating specific results, review the most important things that you learned from the lab. (4 pts)  
 
-*Response*:
+*Response*: Answers will vary.
 
